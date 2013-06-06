@@ -1,0 +1,59 @@
+#!/usr/bin/env ruby
+begin
+require 'optparse'
+require "timeseries"
+require "chronic"
+
+options = {}
+format  = "%Y-%m-%d %H:%M:%S"
+
+OptionParser.new do |opts|
+  opts.banner = %{
+Usage: #{$0} [options] [START_TIME] [STOP_TIME]
+
+  Generate time series data.
+
+Options:
+}.lstrip
+
+  opts.on("-f", "--format FORMAT", "strftime format str (#{format})") do |str|
+    format = str
+  end
+
+  opts.on("-n", "--n-steps N", "number of steps") do |n|
+    options[:n_steps] = n.to_i
+  end
+
+  opts.on("-d", "debug mode") do
+    $DEBUG = true
+  end
+
+  opts.on("-h", "--help", "print this help") do
+    puts opts
+    puts
+    exit
+  end
+end.parse!
+
+if ARGV.length > 2
+  raise "extra arguments"
+end
+start, stop = ARGV.shift(2)
+
+options[:start_time] = Chronic.parse(start) if start
+options[:stop_time]  = Chronic.parse(stop) if stop
+
+timeseries = Timeseries.new(options)
+timeseries.each do |step|
+  puts step.strftime(format)
+end
+
+rescue Interrupt
+  exit 130
+rescue Errno::EPIPE 
+  exit 0
+rescue
+  raise if $DEBUG
+  $stderr.puts $!.message
+  exit 1
+end
