@@ -1,4 +1,5 @@
 require 'active_support/time'
+require "strscan"
 require "timeseries/version"
 
 # Use like 
@@ -18,6 +19,49 @@ require "timeseries/version"
 #   include_stop  = true    # <=
 #
 class Timeseries
+  class << self
+    
+    # http://docs.splunk.com/Documentation/Splunk/5.0.2/SearchReference/SearchTimeModifiers
+    # second: s, sec, secs, second, seconds
+    # minute: m, min, minute, minutes
+    # hour: h, hr, hrs, hour, hours
+    # day: d, day, days
+    # week: w, week, weeks
+    # month: mon, month, months
+    # year: y, yr, yrs, year, years
+    def period_type(str)
+      case str
+      when *%w{s sec secs second seconds}  then :seconds
+      when *%w{m min minute minutes}       then :minutes
+      when *%w{h hr hrs hour hours}        then :hours
+      when *%w{d day days}                 then :days
+      when *%w{w week weeks}               then :weeks
+      when *%w{mon month months}           then :months
+      when *%w{y yr yrs year years}        then :years
+      else raise "invalid period type: #{str.inspect}"
+      end
+    end
+  
+    def parse_period(str)
+      period = {}
+
+      scanner = StringScanner.new(str)
+      while scanner.skip(/\s*(-?\d+(?:\.\d+)?)\s*([A-Za-z]+)\s*/)
+        value, unit = scanner[1], scanner[2]
+
+        type = period_type(unit)
+        value = value[0] == ?- ? Float(value) : Integer(value)
+
+        period[type] = value
+      end
+      unless scanner.eos?
+        raise "invalid period string: #{str.inspect}"
+      end
+
+      period
+    end
+  end
+
   include Enumerable
 
   attr_reader :start_time

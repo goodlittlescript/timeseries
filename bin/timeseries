@@ -24,6 +24,14 @@ Options:
     options[:n_steps] = n.to_i
   end
 
+  opts.on("-o", "--offset OFFSET", "offset (0)") do |offset|
+    options[:offset] = Timeseries.parse_period_str(offset)
+  end
+
+  opts.on("-p", "--period PERIOD", "period (1s)") do |period|
+    options[:period] = Timeseries.parse_period(period)
+  end
+
   opts.on("-d", "debug mode") do
     $DEBUG = true
   end
