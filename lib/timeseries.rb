@@ -1,197 +1,147 @@
-require 'active_support/time'
-require "strscan"
 require "timeseries/version"
+require "active_support/time"
+require "strscan"
 
-# Use like 
-#
-#   now = Time.parse("09:00")
-#   series = TimeSeries.new(:start_time => now, :n_steps => 10, :period => {:minutes => 15})
-#   series.each {|time| puts time }
-#
-# options
-#
-#   start_time
-#   stop_time
-#   n_steps = 1             # stop_time or n_steps may be specified
-#   period = 1              # {:years, :months, :weeks, :days, :hours, :minutes, :seconds} - number defaults to {:seconds => number}
-#   offset = 0              # {:years, :months, :weeks, :days, :hours, :minutes, :seconds} - number defaults to {:seconds => number}
-#   include_start = false   # >
-#   include_stop  = true    # <=
-#
 class Timeseries
   class << self
-    
-    # http://docs.splunk.com/Documentation/Splunk/5.0.2/SearchReference/SearchTimeModifiers
-    # second: s, sec, secs, second, seconds
-    # minute: m, min, minute, minutes
-    # hour: h, hr, hrs, hour, hours
-    # day: d, day, days
-    # week: w, week, weeks
-    # month: mon, month, months
-    # year: y, yr, yrs, year, years
+    # Returns the period type for the period string, as per PERIOD_TYPES.
     def period_type(str)
-      case str
-      when *%w{s sec secs second seconds}  then :seconds
-      when *%w{m min minute minutes}       then :minutes
-      when *%w{h hr hrs hour hours}        then :hours
-      when *%w{d day days}                 then :days
-      when *%w{w week weeks}               then :weeks
-      when *%w{mon month months}           then :months
-      when *%w{y yr yrs year years}        then :years
-      else raise "invalid period type: #{str.inspect}"
+      PERIOD_TYPES.each_pair do |period_type, variations|
+        if variations.include?(str)
+          return period_type
+        end
       end
+
+      raise "invalid period type: #{str.inspect}"
     end
-  
+
+    # Parse a period string into a period hash.
+    #
+    #   Timeseries.parse_period("1s2w")        # => {:seconds => 1, :weeks => 2}
+    #   Timeseries.parse_period("1sec2weeks")  # => {:seconds => 1, :weeks => 2}
+    #
     def parse_period(str)
       period = {}
-
       scanner = StringScanner.new(str)
-      while scanner.skip(/\s*(-?\d+(?:\.\d+)?)\s*([A-Za-z]+)\s*/)
-        value, unit = scanner[1], scanner[2]
+  
+      begin
+        while scanner.skip(/\s*(-?\d+(?:\.\d+)?)?\s*([A-Za-z]+)\s*/)
+          value, unit = scanner[1] || "1", scanner[2]
 
-        type = period_type(unit)
-        value = value[0] == ?- ? Float(value) : Integer(value)
+          type = period_type(unit)
+          value = value.include?('.') ? Float(value) : Integer(value)
 
-        period[type] = value
-      end
-      unless scanner.eos?
+          period[type] = value
+        end
+        raise unless scanner.eos?
+      rescue
         raise "invalid period string: #{str.inspect}"
       end
 
       period
     end
+
+    # Returns the number of steps from start_time to stop_time (inclusive)
+    # given period.  Returns nil if stop_time cannot be reached, for example
+    # when stop_time < start_time for a positive period or if period is 0.
+    def n_steps(options = {})
+      start_time = options.fetch(:start_time, Time.now)
+      stop_time  = options.fetch(:stop_time, start_time)
+      period     = options.fetch(:period, :seconds => 1)
+      zone       = options.fetch(:zone, Time.zone || "UTC")
+
+      # the simple algorithm for n_steps is to start at start_time and advance
+      # one-by-one until stop_time, which can be slow for large n.  instead,
+      # get an average time-per-period and guess the number of steps in one
+      # shot and correct from there.
+
+      Time.use_zone(zone) do
+        start_time  = start_time.in_time_zone
+        future_time = start_time.advance multiply_period(10, period)
+        avg_sec_per_step = (future_time - start_time) / 10
+
+        if avg_sec_per_step == 0
+          if start_time == stop_time
+            return 0
+          else
+            raise "empty period"
+          end
+        end
+
+        n_steps = ((stop_time - start_time) / avg_sec_per_step).to_i
+        current = start_time.advance multiply_period(n_steps, period)
+
+        increasing_series = future_time > start_time
+        while increasing_series ? current > stop_time : current < stop_time
+          current = current.advance reverse_period(period)
+          n_steps -= 1
+        end
+
+        until increasing_series ? current > stop_time : current < stop_time
+          current = current.advance period
+          n_steps += 1
+        end
+
+        n_steps
+      end
+    end
+
+    def reverse_period(period)
+      multiply_period(-1, period)
+    end
+  
+    def multiply_period(factor, period)
+      result = {}
+      period.each_pair {|key, value| result[key] = value * factor }
+      result
+    end
   end
 
   include Enumerable
 
+  # http://docs.splunk.com/Documentation/Splunk/5.0.2/SearchReference/SearchTimeModifiers
+  PERIOD_TYPES = {
+    :seconds => %w{s sec secs second seconds},
+    :minutes => %w{m min minute minutes},
+    :hours   => %w{h hr hrs hour hours},
+    :days    => %w{d day days},
+    :weeks   => %w{w week weeks},
+    :months  => %w{mon month months},
+    :years   => %w{y yr yrs year years}
+  }
+
   attr_reader :start_time
+  attr_reader :n_steps
   attr_reader :period
   attr_reader :offset
-  attr_reader :include_start
-  attr_reader :include_stop
+  attr_reader :zone
 
-  def initialize(options={})
-    period  = options.fetch(:period, 1)
-    @period = to_advance_options(period) or raise "invalid period: #{options[:period]}"
-
-    offset  = options.fetch(:offset, 0)
-    @offset = to_advance_options(offset) or raise "invalid period: #{options[:offset]}"
-
+  # http://www.timeanddate.com/library/abbreviations/timezones/
+  def initialize(options = {})
     @start_time = options.fetch(:start_time, Time.now)
-    case
-    when !options[:stop_time].present?
-      @n_steps   = options.fetch(:n_steps, 1)
-    when !options[:n_steps].present?
-      @stop_time = options.fetch(:stop_time)
-    else
-      raise "cannot specify both stop_time and n_steps"
-    end
-
-    @increasing = @start_time.advance(@period) > @start_time ? true : false
-    if @stop_time && (@increasing ? @start_time > @stop_time : @start_time < @stop_time)
-      if @increasing
-        raise "invalid start/stop times: #{start_time} > #{stop_time}"
-      else
-        raise "invalid start/stop times: #{start_time} < #{stop_time} (decreasing series)"
-      end
-    end
-
-    @include_stop  = options.fetch(:include_stop, false)
-    @include_start = options.fetch(:include_start, true)
+    @n_steps    = options.fetch(:n_steps, 0)
+    @period     = options.fetch(:period, {})
+    @offset     = options.fetch(:offset, 0)
+    @zone       = options.fetch(:zone, Time.zone || "UTC")
   end
 
-  def n_steps
-    derive_values unless @n_steps
-    @n_steps
-  end
-  alias length n_steps
-  alias size n_steps
-
-  def stop_time
-    derive_values unless @stop_time
-    @stop_time
-  end
-
-  def increasing?
-    @increasing
-  end
-
-  def decreasing?
-    !increasing?
-  end
-
-  def after_start?(time)
-    if increasing?
-      include_start ? time >= start_time : time > start_time
-    else
-      include_start ? time <= start_time : time < start_time
-    end
-  end
-
-  def before_start?(time)
-    !after_start?(time)
-  end
-
-  def before_end?(time)
-    if increasing?
-      include_stop ? time <= stop_time  : time < stop_time
-    else
-      include_stop ? time >= stop_time  : time > stop_time
-    end
-  end
-
-  def after_end?(time)
-    !before_end?(time)
-  end
-
-  def include?(time)
-    after_start?(time) && before_end?(time)
-  end
-
-  # Returns an array of time steps
-  def steps
-    map.to_a
-  end
-
-  # Yields each step to the block.
+  # Yields each step to the block, as a UTC time.
   def each
-    current = start_time.advance(offset)
+    return to_enum(:each) unless block_given?
 
-    while before_start?(current)
-      current = current.advance(period)
-    end
+    Time.use_zone(zone) do
+      current = start_time.in_time_zone
 
-    if @n_steps
-      @n_steps.times do
-        yield current
-        current = current.advance(period)
+      offset_period = offset < 0 ? Timeseries.multiply_period(-1, period) : period
+      offset.abs.times do
+        current = current.advance(offset_period)
       end
-    else
-      until after_end?(current)
+
+      step_period = n_steps < 0 ? Timeseries.multiply_period(-1, period) : period
+      n_steps.abs.times do
         yield current
-        current = current.advance(period)
+        current = current.advance(step_period)
       end
-    end
-  end
-
-  private
-
-  def derive_values
-    size = 0
-    last = nil
-    each do |value|
-      size += 1
-      last = value
-    end
-    @n_steps   ||= size
-    @stop_time ||= include_stop ? last : last.advance(period)
-  end
-
-  def to_advance_options(value)
-    case value
-    when Hash    then value
-    when Numeric then {:seconds => value}
-    else nil
     end
   end
 end

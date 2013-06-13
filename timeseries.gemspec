@@ -19,4 +19,5 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency "activesupport", "~> 3.2"
   gem.add_dependency "chronic", "~> 0.9"
+  gem.add_dependency "tzinfo"
 end
