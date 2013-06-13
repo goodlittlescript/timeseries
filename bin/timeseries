@@ -20,12 +20,12 @@ Options:
     format = str
   end
 
-  opts.on("-n", "--n-steps N", "number of steps") do |n|
-    options[:n_steps] = n.to_i
+  opts.on("-n", "--n-steps N", "number of steps") do |n_steps|
+    options[:n_steps] = n_steps.to_i
   end
 
   opts.on("-o", "--offset OFFSET", "offset (0)") do |offset|
-    options[:offset] = Timeseries.parse_period_str(offset)
+    options[:offset] = offset.to_i
   end
 
   opts.on("-p", "--period PERIOD", "period (1s)") do |period|
@@ -51,6 +51,7 @@ start, stop = ARGV.shift(2)
 options[:start_time] = Chronic.parse(start) if start
 options[:stop_time]  = Chronic.parse(stop) if stop
 
+options = Timeseries.normalize(options)
 timeseries = Timeseries.new(options)
 timeseries.each do |step|
   puts step.strftime(format)

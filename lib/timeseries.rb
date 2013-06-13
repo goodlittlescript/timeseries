@@ -86,6 +86,11 @@ class Timeseries
       end
     end
 
+    def normalize(options)
+      options[:n_steps] ||= n_steps(options)
+      options
+    end
+
     def reverse_period(period)
       multiply_period(-1, period)
     end
