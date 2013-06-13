@@ -17,8 +17,18 @@ Usage: #{$0} [options] [START_TIME] [STOP_TIME]
 Options:
 }.lstrip
 
+  opts.on("-d", "--debug", "debug mode") do
+    $DEBUG = true
+  end
+
   opts.on("-f", "--format FORMAT", "strftime format str (#{format})") do |str|
     format = str
+  end
+
+  opts.on("-h", "--help", "print this help") do
+    puts opts
+    puts
+    exit
   end
 
   opts.on("-n", "--n-steps N", "number of steps") do |n_steps|
@@ -35,16 +45,6 @@ Options:
 
   opts.on("-z", "--zone ZONE", "timezone (UTC)") do |zone|
     Time.zone = zone
-  end
-
-  opts.on("-d", "debug mode") do
-    $DEBUG = true
-  end
-
-  opts.on("-h", "--help", "print this help") do
-    puts opts
-    puts
-    exit
   end
 end.parse!
 
