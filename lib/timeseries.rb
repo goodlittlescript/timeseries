@@ -45,45 +45,9 @@ class Timeseries
     # given period.  Returns nil if stop_time cannot be reached, for example
     # when stop_time < start_time for a positive period or if period is 0.
     def n_steps(options = {})
-      start_time = options.fetch(:start_time, Time.now)
-      stop_time  = options.fetch(:stop_time, start_time)
-      period     = options.fetch(:period, :seconds => 1)
-      zone       = options.fetch(:zone, Time.zone || "UTC")
-
-      # the simple algorithm for n_steps is to start at start_time and advance
-      # one-by-one until stop_time, which can be slow for large n.  instead,
-      # get an average time-per-period and guess the number of steps in one
-      # shot and correct from there.
-
-      Time.use_zone(zone) do
-        start_time  = start_time.in_time_zone
-        future_time = start_time.advance multiply_period(10, period)
-        avg_sec_per_step = (future_time - start_time) / 10
-
-        if avg_sec_per_step == 0
-          if start_time == stop_time
-            return 0
-          else
-            raise "empty period"
-          end
-        end
-
-        n_steps = ((stop_time - start_time) / avg_sec_per_step).to_i
-        current = start_time.advance multiply_period(n_steps, period)
-
-        increasing_series = future_time > start_time
-        while increasing_series ? current > stop_time : current < stop_time
-          current = current.advance reverse_period(period)
-          n_steps -= 1
-        end
-
-        until increasing_series ? current > stop_time : current < stop_time
-          current = current.advance period
-          n_steps += 1
-        end
-
-        n_steps
-      end
+      series = new options
+      stop_time = options.fetch(:stop_time, series.start_time)
+      series.n_steps_to(stop_time)
     end
 
     def normalize(options)
@@ -115,6 +79,7 @@ class Timeseries
     :years   => %w{y yr yrs year years}
   }
 
+  attr_reader :start_time_in_zone
   attr_reader :start_time
   attr_reader :n_steps
   attr_reader :period
@@ -128,25 +93,65 @@ class Timeseries
     @period     = options.fetch(:period, {})
     @offset     = options.fetch(:offset, 0)
     @zone       = options.fetch(:zone, Time.zone || "UTC")
+    @start_time_in_zone = @start_time.in_time_zone(@zone)
+  end
+
+  def at(index)
+    Time.use_zone(zone) do
+      start_time_in_zone.advance Timeseries.multiply_period(index, period)
+    end
+  end
+
+  def avg_sec_per_step
+    @avg_sec_per_step ||= (at(10) - start_time_in_zone) / 10
+  end
+
+  def n_steps_to(stop_time)
+    stop_time_in_zone = stop_time.in_time_zone(zone)
+
+    if avg_sec_per_step == 0
+      if start_time_in_zone == stop_time_in_zone
+        return 0
+      else
+        raise "empty period"
+      end
+    end
+
+    # the simple algorithm for n_steps is to start at start_time and advance
+    # one-by-one until stop_time, which can be slow for large n.  instead,
+    # get an average time-per-period and guess the number of steps in one
+    # shot and correct from there.
+
+    n_steps = ((stop_time_in_zone - start_time_in_zone) / avg_sec_per_step).to_i
+    current = at(n_steps)
+
+    while increasing? ? current > stop_time_in_zone : current < stop_time_in_zone
+      n_steps -= 1
+      current = at(n_steps)
+    end
+
+    until increasing? ? current > stop_time_in_zone : current < stop_time_in_zone
+      n_steps += 1
+      current = at(n_steps)
+    end
+
+    n_steps
+  end
+
+  def increasing?
+    @increasing_series ||= at(0) <= at(1)
   end
 
   # Yields each step to the block, as a UTC time.
   def each
     return to_enum(:each) unless block_given?
 
-    Time.use_zone(zone) do
-      current = start_time.in_time_zone
+    index = offset
+    step_size = n_steps < 0 ? -1 : 1
 
-      offset_period = offset < 0 ? Timeseries.multiply_period(-1, period) : period
-      offset.abs.times do
-        current = current.advance(offset_period)
-      end
-
-      step_period = n_steps < 0 ? Timeseries.multiply_period(-1, period) : period
-      n_steps.abs.times do
-        yield current
-        current = current.advance(step_period)
-      end
+    n_steps.abs.times do
+      yield at(index)
+      index += step_size
     end
   end
 end

@@ -290,18 +290,17 @@ class TimeseriesTest < Test::Unit::TestCase
   }
   series_tests("left_dst_spring_variable_period", LEFT_DST_SPRING_VARIABLE_PERIOD_SERIES) { Time.zone = "MST7MDT" }
 
-  # Not sure what is the right behavior here... see https://github.com/rails/rails/issues/10938
-  #
-  # DST_SPRING_VARIABLE_PERIOD_SERIES = {
-  #   "1day"    => ["2010-03-13 02:00:00 MST", "2010-03-14 02:00:00 MST", "2010-03-15 02:00:00 MDT"],
-  #   "1week"   => ["2010-03-07 02:00:00 MST", "2010-03-14 02:00:00 MST", "2010-03-21 02:00:00 MDT"],
-  #   "1mon"    => ["2010-02-14 02:00:00 MST", "2010-03-14 02:00:00 MST", "2010-04-14 02:00:00 MDT"],
-  #   "1year"   => ["2009-03-14 02:00:00 MDT", "2010-03-14 02:00:00 MST", "2011-03-14 02:00:00 MDT"],
-  #   
-  #   "2day1h"  => ["2010-03-12 01:00:00 MST", "2010-03-14 02:00:00 MST", "2010-03-16 03:00:00 MDT"],
-  #   "-2day1h" => ["2010-03-16 01:00:00 MDT", "2010-03-14 02:00:00 MST", "2010-03-12 03:00:00 MST"],
-  # }
-  # series_tests("dst_spring_variable_period", DST_SPRING_VARIABLE_PERIOD_SERIES) { Time.zone = "MST7MDT"; }
+  # See https://github.com/rails/rails/issues/10938
+  DST_SPRING_VARIABLE_PERIOD_SERIES = {
+    "1day"    => ["2010-03-13 02:00:00 MST", "2010-03-14 03:00:00 MDT", "2010-03-15 02:00:00 MDT"],
+    "1week"   => ["2010-03-07 02:00:00 MST", "2010-03-14 03:00:00 MDT", "2010-03-21 02:00:00 MDT"],
+    "1mon"    => ["2010-02-14 02:00:00 MST", "2010-03-14 03:00:00 MDT", "2010-04-14 02:00:00 MDT"],
+    "1year"   => ["2009-03-14 02:00:00 MDT", "2010-03-14 03:00:00 MDT", "2011-03-14 02:00:00 MDT"],
+    
+    "2day1h"  => ["2010-03-12 01:00:00 MST", "2010-03-14 03:00:00 MDT", "2010-03-16 03:00:00 MDT"],
+    "-2day1h" => ["2010-03-16 01:00:00 MDT", "2010-03-14 03:00:00 MDT", "2010-03-12 03:00:00 MST"],
+  }
+  series_tests("dst_spring_variable_period", DST_SPRING_VARIABLE_PERIOD_SERIES) { Time.zone = "MST7MDT"; }
 
   RIGHT_DST_SPRING_VARIABLE_PERIOD_SERIES = {
     "1day"    => ["2010-03-13 03:00:00 MST", "2010-03-14 03:00:00 MDT", "2010-03-15 03:00:00 MDT"],
@@ -343,13 +342,6 @@ class TimeseriesTest < Test::Unit::TestCase
   #
   # Leap Year
   #
-  # Note that some series make no sense and will face the same issue as
-  # DST_SPRING_VARIABLE_PERIOD_SERIES (meaning they cannot be reversed). 
-  # Lesson is that advance is just no good sometimes??
-  #
-  # * "1mon"    => ["2010-01-29 00:00:00 UTC", "2010-02-28 00:00:00 UTC", "2010-03-29 00:00:00 UTC"]
-  # * "1yr"     => ["2012-02-29 00:00:00 UTC", "2013-02-28 00:00:00 UTC", "2014-02-28 00:00:00 UTC", "2015-02-28 00:00:00 UTC", "2016-02-29 00:00:00 UTC"]
-  #
 
   NON_LEAP_YEAR_SERIES = {
     "1sec"    => ["2010-02-28 23:59:59 UTC", "2010-03-01 00:00:00 UTC"],
@@ -357,6 +349,7 @@ class TimeseriesTest < Test::Unit::TestCase
     "1hr"     => ["2010-02-28 23:00:00 UTC", "2010-03-01 00:00:00 UTC"],
     "1day"    => ["2010-02-28 00:00:00 UTC", "2010-03-01 00:00:00 UTC"],
     "1week"   => ["2010-02-22 00:00:00 UTC", "2010-03-01 00:00:00 UTC"],
+    "1mon"    => ["2010-01-29 00:00:00 UTC", "2010-02-28 00:00:00 UTC", "2010-03-29 00:00:00 UTC"],
     "1yr"     => ["2010-02-28 00:00:00 UTC", "2011-02-28 00:00:00 UTC"],
   }
   series_tests("non_leap_year", NON_LEAP_YEAR_SERIES) { Time.zone = "UTC" }
@@ -379,6 +372,7 @@ class TimeseriesTest < Test::Unit::TestCase
     "1day"    => ["2012-02-28 00:00:00 UTC", "2012-02-29 00:00:00 UTC", "2012-03-01 00:00:00 UTC"],
     "1week"   => ["2012-02-22 00:00:00 UTC", "2012-02-29 00:00:00 UTC", "2012-03-07 00:00:00 UTC"],
     "1mon"    => ["2012-01-29 00:00:00 UTC", "2012-02-29 00:00:00 UTC", "2012-03-29 00:00:00 UTC"],
+    "1yr"     => ["2012-02-29 00:00:00 UTC", "2013-02-28 00:00:00 UTC", "2014-02-28 00:00:00 UTC", "2015-02-28 00:00:00 UTC", "2016-02-29 00:00:00 UTC"]
   }
   series_tests("leap_year", NON_LEAP_YEAR_SERIES) { Time.zone = "UTC" }
 
