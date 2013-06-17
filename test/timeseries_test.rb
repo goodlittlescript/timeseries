@@ -432,4 +432,14 @@ class TimeseriesTest < Test::Unit::TestCase
       Time.parse("2010-01-01 01:00:00 UTC") => ["d", "E"]
     }, intervals)
   end
+
+  def test_collate_allows_key_format
+    intervals = quarter_hour_series.collate(quarter_hour_data, :key_format => "%H:%M")
+    assert_equal({
+      "00:15" => [:a, :b],
+      "00:30" => [:b, :c],
+      "00:45" => [:c, :d],
+      "01:00" => [:d, :e]
+    }, intervals)
+  end
 end
