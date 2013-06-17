@@ -43,6 +43,16 @@ Options:
     options[:period] = Timeseries::Period.parse(period)
   end
 
+  opts.on("-s", "--snap TYPE", "snap start/stop") do |code|
+    case code
+    when "pp" then options.merge!(:snap_start_time => :previous, :snap_stop_time => :previous)
+    when "pn", "outer" then options.merge!(:snap_start_time => :previous, :snap_stop_time => :next)
+    when "np", "inner" then options.merge!(:snap_start_time => :next, :snap_stop_time => :previous)
+    when "nn" then options.merge!(:snap_start_time => :next, :snap_stop_time => :next)
+    else raise "invalid snap code: #{code}"
+    end
+  end
+
   opts.on("-z", "--zone ZONE", "timezone (UTC)") do |zone|
     Time.zone = zone
   end
