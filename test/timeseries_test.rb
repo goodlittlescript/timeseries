@@ -14,6 +14,30 @@ class TimeseriesTest < Test::Unit::TestCase
 
   #
   # Timeseries.normalize
+  # start,period,n_steps
+
+  def test_normalize_with_start_period_n_steps_snaps_start_time_to_previous_if_specified
+    options = Timeseries.normalize(
+      :start_time => Time.parse("2010-01-01 00:23:00"),
+      :period     => {:minutes => 15},
+      :n_steps    => 1,
+      :snap_start_time => :previous
+    )
+    assert_equal("2010-01-01 00:15:00", options[:start_time].strftime("%Y-%m-%d %H:%M:%S"))
+  end
+
+  def test_normalize_with_start_period_n_steps__snaps_start_time_to_next_if_specified
+    options = Timeseries.normalize(
+      :start_time => Time.parse("2010-01-01 00:23:00"),
+      :period     => {:minutes => 15},
+      :n_steps    => 1,
+      :snap_start_time => :next
+    )
+    assert_equal("2010-01-01 00:30:00", options[:start_time].strftime("%Y-%m-%d %H:%M:%S"))
+  end
+
+  #
+  # Timeseries.normalize
   # start,stop,period
 
   def test_normalize_sets_n_steps_from_start_stop_time_and_period_inclusive

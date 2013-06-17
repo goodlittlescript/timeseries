@@ -44,8 +44,12 @@ class Timeseries
       raise NotImplementedError
     end
 
-    # this is the "native" format of Timeseries... nothing to do!
     def solve_stop_time(options)
+      period = Period.coerce(options.fetch(:period, {}))
+      start_time = options.fetch(:start_time, Time.now)
+
+      options[:start_time] = snap_time(period, start_time, options[:snap_start_time])
+      options[:period]     = period
       options
     end
 
