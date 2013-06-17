@@ -412,24 +412,16 @@ class TimeseriesTest < Test::Unit::TestCase
   end
 
   def test_collate_data_into_interval_ending_intervals
-    intervals = quarter_hour_series.collate(quarter_hour_data)
-    assert_equal({
-      Time.parse("2010-01-01 00:15:00 UTC") => [:a, :b],
-      Time.parse("2010-01-01 00:30:00 UTC") => [:b, :c],
-      Time.parse("2010-01-01 00:45:00 UTC") => [:c, :d],
-      Time.parse("2010-01-01 01:00:00 UTC") => [:d, :e]
-    }, intervals)
-  end
-
-  def test_collate_yields_intervals_to_block_if_given
-    intervals = quarter_hour_series.collate(quarter_hour_data) do |previous, current|
-      [previous.to_s, current.to_s.upcase]
+    intervals = {}
+    quarter_hour_series.collate(quarter_hour_data).each_pair do |time, interval|
+      intervals[time.strftime("%Y-%m-%d %H:%M:%S %Z")] = interval
     end
+
     assert_equal({
-      Time.parse("2010-01-01 00:15:00 UTC") => ["a", "B"],
-      Time.parse("2010-01-01 00:30:00 UTC") => ["b", "C"],
-      Time.parse("2010-01-01 00:45:00 UTC") => ["c", "D"],
-      Time.parse("2010-01-01 01:00:00 UTC") => ["d", "E"]
+      "2010-01-01 00:15:00 UTC" => [:a, :b],
+      "2010-01-01 00:30:00 UTC" => [:b, :c],
+      "2010-01-01 00:45:00 UTC" => [:c, :d],
+      "2010-01-01 01:00:00 UTC" => [:d, :e]
     }, intervals)
   end
 
@@ -443,13 +435,25 @@ class TimeseriesTest < Test::Unit::TestCase
     }, intervals)
   end
 
-  def test_collate_allows_interval_beginning_collation
-    intervals = quarter_hour_series.collate(quarter_hour_data, :interval_type => :beginning)
+  def test_collate_yields_intervals_to_block_if_given
+    intervals = quarter_hour_series.collate(quarter_hour_data, :key_format => "%Y-%m-%d %H:%M:%S %Z") do |previous, current|
+      [previous.to_s, current.to_s.upcase]
+    end
     assert_equal({
-      Time.parse("2010-01-01 00:00:00 UTC") => [:a, :b],
-      Time.parse("2010-01-01 00:15:00 UTC") => [:b, :c],
-      Time.parse("2010-01-01 00:30:00 UTC") => [:c, :d],
-      Time.parse("2010-01-01 00:45:00 UTC") => [:d, :e]
+      "2010-01-01 00:15:00 UTC" => ["a", "B"],
+      "2010-01-01 00:30:00 UTC" => ["b", "C"],
+      "2010-01-01 00:45:00 UTC" => ["c", "D"],
+      "2010-01-01 01:00:00 UTC" => ["d", "E"]
+    }, intervals)
+  end
+
+  def test_collate_allows_interval_beginning_collation
+    intervals = quarter_hour_series.collate(quarter_hour_data, :interval_type => :beginning, :key_format => "%Y-%m-%d %H:%M:%S %Z")
+    assert_equal({
+      "2010-01-01 00:00:00 UTC" => [:a, :b],
+      "2010-01-01 00:15:00 UTC" => [:b, :c],
+      "2010-01-01 00:30:00 UTC" => [:c, :d],
+      "2010-01-01 00:45:00 UTC" => [:d, :e]
     }, intervals)
   end
 
