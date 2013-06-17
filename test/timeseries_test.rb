@@ -394,4 +394,42 @@ class TimeseriesTest < Test::Unit::TestCase
   #   "1sec"    => ["2012-06-30 23:59:59 UTC", "2012-06-30 23:59:60 UTC", "2012-07-01 00:00:00 UTC"],
   # }
   # series_tests("leap_second", LEAP_SECOND_SERIES) { Time.zone = "UTC" }
+
+  #
+  # collate test
+  #
+
+  def quarter_hour_series
+    Timeseries.new(
+      :start_time => Time.parse("2010-01-01 00:00:00 UTC"),
+      :period     => {:minutes => 15},
+      :n_steps    => 5
+    )
+  end
+
+  def quarter_hour_data
+    [:a, :b, :c, :d, :e]
+  end
+
+  def test_collate_data_into_interval_ending_intervals
+    intervals = quarter_hour_series.collate(quarter_hour_data)
+    assert_equal({
+      Time.parse("2010-01-01 00:15:00 UTC") => [:a, :b],
+      Time.parse("2010-01-01 00:30:00 UTC") => [:b, :c],
+      Time.parse("2010-01-01 00:45:00 UTC") => [:c, :d],
+      Time.parse("2010-01-01 01:00:00 UTC") => [:d, :e]
+    }, intervals)
+  end
+
+  def test_collate_yields_intervals_to_block_if_given
+    intervals = quarter_hour_series.collate(quarter_hour_data) do |previous, current|
+      [previous.to_s, current.to_s.upcase]
+    end
+    assert_equal({
+      Time.parse("2010-01-01 00:15:00 UTC") => ["a", "B"],
+      Time.parse("2010-01-01 00:30:00 UTC") => ["b", "C"],
+      Time.parse("2010-01-01 00:45:00 UTC") => ["c", "D"],
+      Time.parse("2010-01-01 01:00:00 UTC") => ["d", "E"]
+    }, intervals)
+  end
 end

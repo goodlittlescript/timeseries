@@ -142,4 +142,23 @@ class Timeseries
       index += step_size
     end
   end
+
+  def collate(data) # :yields: previous, current
+    pairs = []
+    data.each_with_index do |datum, index|
+      pairs[index] = [datum]
+      pairs[index - 1] << datum if index > 0
+    end
+    pairs.pop
+
+    intervals = {}
+    each_with_index do |step_time, index|
+      next if index == 0
+
+      key = step_time
+      interval = pairs[index - 1]
+      intervals[key] = block_given? ? yield(*interval) : interval
+    end
+    intervals
+  end
 end
