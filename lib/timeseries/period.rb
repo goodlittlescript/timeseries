@@ -1,3 +1,4 @@
+require "active_support/time"
 require "strscan"
 
 class Timeseries
@@ -92,5 +93,37 @@ class Timeseries
       dup.multiply!(factor)
     end
     alias * multiply
+
+    # Advances time to the previous natural grid boundary for a time series of
+    # the current period.
+    #
+    #   time = Time.parse("2011-02-03 04:23:55")
+    #   period = Period.new(:minutes => 15)
+    #   period.snap(time)  # => Time.parse("2011-02-03 04:15:00")
+    #
+    # Currently only works for hours/minutes/seconds.
+    def snap(time)
+      time.advance snap_delta(time).data
+    end
+
+    # Returns a new period that would advance time to the previous natural
+    # grid boundary, as per snap.
+    def snap_delta(time)
+      delta = self.class.new(
+        :hours   => time.hour,
+        :minutes => time.min,
+        :seconds => time.sec
+      )
+
+      period_types = [:seconds, :minutes, :hours]
+      while period_type = period_types.shift
+        next unless data.has_key?(period_type)
+
+        delta.data[period_type] = delta.data[period_type] % data[period_type]
+        period_types.each {|pt| delta.data[pt] = 0 }
+      end
+
+      delta.reverse!
+    end
   end
 end

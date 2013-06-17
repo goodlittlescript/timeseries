@@ -74,4 +74,43 @@ class PeriodTest < Test::Unit::TestCase
     err = assert_raises(RuntimeError) { Period.parse("invalid") }
     assert_equal 'invalid period string: "invalid"', err.message
   end
+
+  ###################################################
+  # Snap Tests
+  ###################################################
+
+  def test_snap_documentation
+    time = Time.parse("2011-02-03 04:23:55")
+    period = Period.new(:minutes => 15)
+    assert_equal Time.parse("2011-02-03 04:15:00"), period.snap(time)
+  end
+
+  def self.snap_tests(desc, snap_pairs)
+    snap_pairs.each_pair do |period_str, snap_time_str|
+      test_suffix  = "#{desc}_#{period_str}".gsub(/\W/, "_")
+      class_eval %{
+        def test_snap_for_#{test_suffix}
+          period = Period.parse("#{period_str}")
+          snap_time = period.snap(arbitrary_time)
+          assert_equal("#{snap_time_str}", snap_time.strftime("%Y-%m-%d %H:%M:%S"))
+        end
+      }
+    end
+  end
+
+  # Ok, not quite arbitrary.  This is a time that is not at the beginning of a
+  # year, month, week, day, hour, or minute.
+  def arbitrary_time
+    Time.parse("2011-02-03 04:05:06")
+  end
+
+  SNAP_TIMES = {
+    "1sec"    => "2011-02-03 04:05:06",
+    "1min"    => "2011-02-03 04:05:00",
+    "1hr"     => "2011-02-03 04:00:00",
+    "15sec"   => "2011-02-03 04:05:00",
+    "15min"   => "2011-02-03 04:00:00",
+    "15hr"    => "2011-02-03 00:00:00"
+  }
+  snap_tests("basic", SNAP_TIMES)
 end
