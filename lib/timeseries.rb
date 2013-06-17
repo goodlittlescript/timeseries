@@ -13,8 +13,53 @@ class Timeseries
     end
 
     def normalize(options)
-      options[:n_steps] ||= n_steps(options)
+      keys = [:start_time, :stop_time, :period, :n_steps]
+      signature = keys.map {|key| options.has_key?(key) ? 1 : 0 }
+
+      case signature
+      when [1, 1, 1, 0] then solve_n_steps(options)
+      when [1, 1, 0, 1] then solve_period(options)
+      when [1, 0, 1, 1] then solve_stop_time(options)
+      when [0, 1, 1, 1] then solve_start_time(options)
+      when [1, 1, 1, 1] then raise "too much information"
+      else raise "not enough information"
+      end
+    end
+
+    private
+
+    def solve_n_steps(options)
+      period = Period.coerce(options.fetch(:period, {}))
+      start_time = options.fetch(:start_time, Time.now)
+      stop_time  = options.fetch(:stop_time, start_time)
+
+      options[:start_time] = snap_time(period, start_time, options[:snap_start_time])
+      options[:stop_time]  = snap_time(period, stop_time, options[:snap_stop_time])
+      options[:period]     = period
+      options[:n_steps] = n_steps(options)
       options
+    end
+
+    def solve_period(options)
+      raise NotImplementedError
+    end
+
+    # this is the "native" format of Timeseries... nothing to do!
+    def solve_stop_time(options)
+      options
+    end
+
+    def solve_start_time(options)
+      raise NotImplementedError
+    end
+
+    def snap_time(period, time, snap_type)
+      case snap_type
+      when :previous then period.snap(time)
+      when :next     then period.snap_next(time)
+      when nil       then time
+      else raise "invalid snap type: #{snap_type.inspect}"
+      end
     end
   end
 

@@ -106,6 +106,10 @@ class Timeseries
       time.advance snap_delta(time).data
     end
 
+    def snap_next(time)
+      snap(time).advance data
+    end
+
     # Returns a new period that would advance time to the previous natural
     # grid boundary, as per snap.
     def snap_delta(time)

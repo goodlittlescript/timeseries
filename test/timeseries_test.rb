@@ -13,6 +13,63 @@ class TimeseriesTest < Test::Unit::TestCase
   end
 
   #
+  # Timeseries.normalize
+  # start,stop,period
+
+  def test_normalize_sets_n_steps_from_start_stop_time_and_period_inclusive
+    options = Timeseries.normalize(
+      :start_time => Time.parse("2010-01-01 00:00:00"),
+      :stop_time  => Time.parse("2010-01-01 01:00:00"),
+      :period     => {:minutes => 15}
+    )
+    assert_equal(5, options[:n_steps])
+  end
+
+  def test_normalize_snaps_start_time_to_previous_if_specified
+    options = Timeseries.normalize(
+      :start_time => Time.parse("2010-01-01 00:23:00"),
+      :stop_time  => Time.parse("2010-01-01 01:00:00"),
+      :period     => {:minutes => 15},
+      :snap_start_time => :previous
+    )
+    assert_equal("2010-01-01 00:15:00", options[:start_time].strftime("%Y-%m-%d %H:%M:%S"))
+    assert_equal(4, options[:n_steps])
+  end
+
+  def test_normalize_snaps_start_time_to_next_if_specified
+    options = Timeseries.normalize(
+      :start_time => Time.parse("2010-01-01 00:23:00"),
+      :stop_time  => Time.parse("2010-01-01 01:00:00"),
+      :period     => {:minutes => 15},
+      :snap_start_time => :next
+    )
+    assert_equal("2010-01-01 00:30:00", options[:start_time].strftime("%Y-%m-%d %H:%M:%S"))
+    assert_equal(3, options[:n_steps])
+  end
+
+  def test_normalize_snaps_stop_time_to_previous_if_specified
+    options = Timeseries.normalize(
+      :start_time => Time.parse("2010-01-01 00:00:00"),
+      :stop_time  => Time.parse("2010-01-01 00:56:00"),
+      :period     => {:minutes => 15},
+      :snap_stop_time => :previous
+    )
+    assert_equal("2010-01-01 00:45:00", options[:stop_time].strftime("%Y-%m-%d %H:%M:%S"))
+    assert_equal(4, options[:n_steps])
+  end
+
+  def test_normalize_snaps_stop_time_to_next_if_specified
+    options = Timeseries.normalize(
+      :start_time => Time.parse("2010-01-01 00:00:00"),
+      :stop_time  => Time.parse("2010-01-01 00:56:00"),
+      :period     => {:minutes => 15},
+      :snap_stop_time => :next
+    )
+    assert_equal("2010-01-01 01:00:00", options[:stop_time].strftime("%Y-%m-%d %H:%M:%S"))
+    assert_equal(5, options[:n_steps])
+  end
+
+  #
   # Timeseries.n_steps special cases
   #
 
