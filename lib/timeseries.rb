@@ -13,15 +13,14 @@ class Timeseries
     end
 
     def normalize(options)
-      keys = [:start_time, :stop_time, :period, :n_steps]
+      keys = [:stop_time, :period, :n_steps]
       signature = keys.map {|key| options.has_key?(key) ? 1 : 0 }
 
       case signature
-      when [1, 1, 1, 0] then solve_n_steps(options)
-      when [1, 1, 0, 1] then solve_period(options)
-      when [1, 0, 1, 1] then solve_stop_time(options)
-      when [0, 1, 1, 1] then solve_start_time(options)
-      when [1, 1, 1, 1] then raise "too much information"
+      when [1, 1, 0] then solve_n_steps(options)
+      when [1, 0, 1] then solve_period(options)
+      when [0, 1, 1] then solve_stop_time(options)
+      when [1, 1, 1] then raise "too much information"
       else raise "not enough information"
       end
     end
@@ -51,10 +50,6 @@ class Timeseries
       options[:start_time] = snap_time(period, start_time, options[:snap_start_time])
       options[:period]     = period
       options
-    end
-
-    def solve_start_time(options)
-      raise NotImplementedError
     end
 
     def snap_time(period, time, snap_type)
