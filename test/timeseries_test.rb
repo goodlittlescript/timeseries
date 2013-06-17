@@ -442,4 +442,19 @@ class TimeseriesTest < Test::Unit::TestCase
       "01:00" => [:d, :e]
     }, intervals)
   end
+
+  def test_collate_allows_interval_beginning_collation
+    intervals = quarter_hour_series.collate(quarter_hour_data, :interval_type => :beginning)
+    assert_equal({
+      Time.parse("2010-01-01 00:00:00 UTC") => [:a, :b],
+      Time.parse("2010-01-01 00:15:00 UTC") => [:b, :c],
+      Time.parse("2010-01-01 00:30:00 UTC") => [:c, :d],
+      Time.parse("2010-01-01 00:45:00 UTC") => [:d, :e]
+    }, intervals)
+  end
+
+  def test_collate_raises_error_for_invalid_interval_type
+    err = assert_raises(RuntimeError) { quarter_hour_series.collate(quarter_hour_data, :interval_type => :invalid) }
+    assert_equal "invalid interval_type: :invalid", err.message
+  end
 end

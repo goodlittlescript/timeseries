@@ -145,6 +145,13 @@ class Timeseries
 
   def collate(data, options = {}) # :yields: previous, current
     key_format = options.fetch(:key_format, nil)
+    interval_type = options.fetch(:interval_type, :ending)
+
+    case interval_type
+    when :ending    then skip_index, offset = 0, 1
+    when :beginning then skip_index, offset = (n_steps - 1), 0
+    else raise "invalid interval_type: #{interval_type.inspect}"
+    end
 
     pairs = []
     data.each_with_index do |datum, index|
@@ -155,10 +162,10 @@ class Timeseries
 
     intervals = {}
     each_with_index do |step_time, index|
-      next if index == 0
+      next if index == skip_index
 
       key = key_format ? step_time.strftime(key_format) : step_time
-      interval = pairs[index - 1]
+      interval = pairs[index - offset]
       intervals[key] = block_given? ? yield(*interval) : interval
     end
     intervals
