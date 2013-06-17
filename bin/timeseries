@@ -40,7 +40,7 @@ Options:
   end
 
   opts.on("-p", "--period PERIOD", "period (1s)") do |period|
-    options[:period] = Timeseries.parse_period(period)
+    options[:period] = Timeseries::Period.parse(period)
   end
 
   opts.on("-z", "--zone ZONE", "timezone (UTC)") do |zone|

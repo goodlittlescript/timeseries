@@ -13,77 +13,6 @@ class TimeseriesTest < Test::Unit::TestCase
   end
 
   #
-  # Timeseries.period_type
-  #
-
-  def test_period_type_maps_short_versions_to_standard_type
-    assert_equal :seconds, Timeseries.period_type("s")
-    assert_equal :seconds, Timeseries.period_type("secs")
-    assert_equal :seconds, Timeseries.period_type("seconds")
-  end
-
-  def test_period_type_raises_error_for_unknown_type
-    err = assert_raises(RuntimeError) { Timeseries.period_type("invalid") }
-    assert_equal 'invalid period type: "invalid"', err.message
-  end
-
-  #
-  # Timeseries.parse_period
-  #
-
-  def test_parse_period_documentation
-    expected = {:seconds => 1, :weeks => 2}
-    assert_equal(expected, Timeseries.parse_period("1s2w"))
-    expected = {:seconds => 1, :weeks => 2}
-    assert_equal(expected, Timeseries.parse_period("1sec2weeks"))
-  end
-
-  def test_parse_period_returns_period_hash_for_string
-    expected = {:seconds => 1}
-    assert_equal(expected, Timeseries.parse_period("s"))
-  end
-
-  def test_parse_period_allows_integer_modifier
-    expected = {:seconds => 1001}
-    assert_equal(expected, Timeseries.parse_period("1001s"))
-  end
-
-  def test_parse_period_allows_float_modifier
-    expected = {:seconds => 10.01}
-    assert_equal(expected, Timeseries.parse_period("10.01s"))
-  end
-
-  def test_parse_period_allows_negative_modifier
-    expected = {:seconds => -10.01}
-    assert_equal(expected, Timeseries.parse_period("-10.01s"))
-  end
-
-  def test_parse_period_allows_multiple_units
-    expected = {:seconds => 1, :weeks => 2}
-    assert_equal(expected, Timeseries.parse_period("1s2w"))
-  end
-
-  def test_parse_period_allows_whitespace
-    expected = {:seconds => 1, :weeks => 2}
-    assert_equal(expected, Timeseries.parse_period(" 1s 2w "))
-  end
-
-  def test_parse_period_uses_last_period_value
-    expected = {:seconds => 3}
-    assert_equal(expected, Timeseries.parse_period("1s2s3s"))
-  end
-
-  def test_parse_period_allows_period_aliases
-    expected = {:seconds => 1, :weeks => 2}
-    assert_equal(expected, Timeseries.parse_period("1sec2weeks"))
-  end
-
-  def test_parse_period_raises_error_for_invalid_period_string
-    err = assert_raises(RuntimeError) { Timeseries.parse_period("invalid") }
-    assert_equal 'invalid period string: "invalid"', err.message
-  end
-
-  #
   # Timeseries.n_steps special cases
   #
 
@@ -195,7 +124,7 @@ class TimeseriesTest < Test::Unit::TestCase
       start_time = steps.first
       stop_time  = steps.last
       n_steps    = steps.length
-      period = Timeseries.parse_period(period_str)
+      period = Timeseries::Period.parse(period_str).data
 
       test_suffix  = "#{desc}_#{period_str}".gsub(/\W/, "_")
       class_eval %{
