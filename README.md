@@ -66,6 +66,10 @@ To collate interval-ending intervals from data corresponding to each step:
     # "2010-03-31" => [:b, :c]
     # }
 
+## Bugs
+
+Leap seconds are not supported.
+
 ## Installation
 
 Timeseries is available as a gem:
