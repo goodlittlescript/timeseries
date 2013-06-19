@@ -103,25 +103,6 @@ class Timeseries
     #
     # Currently only works for hours/minutes/seconds.
     def snap_previous(time)
-      time.advance(snap_delta(time).data).change(:usec => 0)
-    end
-
-    # Advances time to the next grid boundary for a time series of the current
-    # period.  Times already on a grid boundary are not changed.
-    #
-    #   time = Time.parse("2010-01-01 01:23:55")
-    #   period = Period.new(:minutes => 15)
-    #   period.snap_next(time)  # => Time.parse("2010-01-01 01:30:00")
-    #
-    # Currently only works for hours/minutes/seconds.
-    def snap_next(time)
-      grid_time = snap_previous(time)
-      grid_time == time ? grid_time : grid_time.advance(data)
-    end
-
-    # Returns a new period that would advance time to the previous natural
-    # grid boundary, as per snap.
-    def snap_delta(time)
       delta = self.class.new(
         :hours   => time.hour,
         :minutes => time.min,
@@ -137,6 +118,20 @@ class Timeseries
       end
 
       delta.reverse!
+      time.advance(delta.data).change(:usec => 0)
+    end
+
+    # Advances time to the next grid boundary for a time series of the current
+    # period.  Times already on a grid boundary are not changed.
+    #
+    #   time = Time.parse("2010-01-01 01:23:55")
+    #   period = Period.new(:minutes => 15)
+    #   period.snap_next(time)  # => Time.parse("2010-01-01 01:30:00")
+    #
+    # Currently only works for hours/minutes/seconds.
+    def snap_next(time)
+      grid_time = snap_previous(time)
+      grid_time == time ? grid_time : grid_time.advance(data)
     end
   end
 end
