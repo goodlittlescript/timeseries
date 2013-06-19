@@ -191,6 +191,15 @@ class TimeseriesTest < Test::Unit::TestCase
     assert_equal(360, n_steps)
   end
 
+  def test_n_steps_ignores_period_types_with_zero_value
+    n_steps = Timeseries.n_steps(
+      :start_time => Time.parse("2012-01-01 00:00:00"),
+      :stop_time  => Time.parse("2012-03-01 00:00:00"),
+      :period     => {:months => 1, :days => 0}
+    )
+    assert_equal(3, n_steps)
+  end
+
   ###################################################
   # Series Tests
   ###################################################
