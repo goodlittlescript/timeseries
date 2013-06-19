@@ -62,15 +62,17 @@ For more flexible initialization use `create`, which will solve for
 `start_time`, `n_steps`, and `period` and parse periods.
 
     series = Timeseries.create(
-      :start_time => Time.zone.parse("2010-01-01"),
-      :stop_time  => Time.zone.parse("2010-03-01"),
-      :period     => :month
+      :start_time => Chronic.parse("00:00:00"),
+      :stop_time  => Chronic.parse("01:00:00"),
+      :period     => "15m"
     )
-    series.map {|time| time.iso8601 }
+    series.map {|time| time.strftime("%H:%M") }
     # => [
-    # "2010-01-01T00:00:00Z",
-    # "2010-02-01T00:00:00Z",
-    # "2010-03-01T00:00:00Z"
+    # "00:00",
+    # "00:15",
+    # "00:30",
+    # "00:45",
+    # "01:00"
     # ]
 
 To collate interval-ending intervals from data corresponding to each step:
