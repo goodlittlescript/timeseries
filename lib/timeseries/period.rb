@@ -103,7 +103,7 @@ class Timeseries
     #
     # Currently only works for hours/minutes/seconds.
     def snap_previous(time)
-      time.advance snap_delta(time).data
+      time.advance(snap_delta(time).data).change(:usec => 0)
     end
 
     # Advances time to the next grid boundary for a time series of the current
