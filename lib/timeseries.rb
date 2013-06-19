@@ -54,7 +54,7 @@ class Timeseries
 
     def snap_time(period, time, snap_type)
       case snap_type
-      when :previous then period.snap(time)
+      when :previous then period.snap_previous(time)
       when :next     then period.snap_next(time)
       when nil       then time
       else raise "invalid snap type: #{snap_type.inspect}"

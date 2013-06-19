@@ -94,21 +94,29 @@ class Timeseries
     end
     alias * multiply
 
-    # Advances time to the previous natural grid boundary for a time series of
-    # the current period.
+    # Backs up time to the previous grid boundary for a time series of the
+    # current period.  Times already on a grid boundary are not changed.
     #
-    #   time = Time.parse("2011-02-03 04:23:55")
+    #   time = Time.parse("2010-01-01 01:23:55")
     #   period = Period.new(:minutes => 15)
-    #   period.snap(time)  # => Time.parse("2011-02-03 04:15:00")
+    #   period.snap_previous(time)  # => Time.parse("2010-01-01 01:15:00")
     #
     # Currently only works for hours/minutes/seconds.
-    def snap(time)
+    def snap_previous(time)
       time.advance snap_delta(time).data
     end
 
+    # Advances time to the next grid boundary for a time series of the current
+    # period.  Times already on a grid boundary are not changed.
+    #
+    #   time = Time.parse("2010-01-01 01:23:55")
+    #   period = Period.new(:minutes => 15)
+    #   period.snap_next(time)  # => Time.parse("2010-01-01 01:30:00")
+    #
+    # Currently only works for hours/minutes/seconds.
     def snap_next(time)
-      previous = snap(time)
-      previous == time ? previous : previous.advance(data)
+      grid_time = snap_previous(time)
+      grid_time == time ? grid_time : grid_time.advance(data)
     end
 
     # Returns a new period that would advance time to the previous natural

@@ -79,20 +79,26 @@ class PeriodTest < Test::Unit::TestCase
   # Snap Tests
   ###################################################
 
-  def test_snap_documentation
-    time = Time.parse("2011-02-03 04:23:55")
+  def test_snap_previous_documentation
+    time = Time.parse("2010-01-01 01:23:55")
     period = Period.new(:minutes => 15)
-    assert_equal Time.parse("2011-02-03 04:15:00"), period.snap(time)
+    assert_equal(Time.parse("2010-01-01 01:15:00"), period.snap_previous(time))
+  end
+
+  def test_snap_next_documentation
+    time = Time.parse("2010-01-01 01:23:55")
+    period = Period.new(:minutes => 15)
+    assert_equal(Time.parse("2010-01-01 01:30:00"), period.snap_next(time))
   end
 
   def self.snap_tests(desc, current_time, snap_pairs)
     snap_pairs.each_pair do |period_str, (previous_time, next_time)|
       test_suffix  = "#{desc}_#{period_str}".gsub(/\W/, "_")
       class_eval %{
-        def test_snap_for_#{test_suffix}
+        def test_snap_previous_for_#{test_suffix}
           period = Period.parse("#{period_str}")
           current_time = Time.parse("#{current_time}")
-          assert_equal("#{previous_time}", period.snap(current_time).strftime("%Y-%m-%d %H:%M:%S"))
+          assert_equal("#{previous_time}", period.snap_previous(current_time).strftime("%Y-%m-%d %H:%M:%S"))
         end
 
         def test_snap_next_for_#{test_suffix}
