@@ -8,8 +8,9 @@ class Timeseries
         case obj
         when Period  then obj
         when Hash    then new(obj)
-        when String  then parse(str)
+        when String  then parse(obj)
         when Numeric then new(:seconds => obj)
+        when *PERIOD_TYPES.keys then new(obj => 1)
         else raise "cannot coerce to Period: #{obj.inspect}"
         end
       end

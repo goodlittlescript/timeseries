@@ -5,6 +5,39 @@ class PeriodTest < Test::Unit::TestCase
   Period = Timeseries::Period
 
   #
+  # Period.coerce
+
+  def test_coerce_returns_period_unchanges
+    period = Period.new({})
+    assert_equal(period.object_id, Period.coerce(period).object_id)
+  end
+
+  def test_coerce_creates_period_from_hash
+    period = Period.coerce({:weeks => 1})
+    assert_equal(Period, period.class)
+    assert_equal({:weeks => 1}, period.data)
+  end
+
+  def test_coerce_parses_period_string
+    assert_equal({:weeks => 1, :days => -2}, Period.coerce("1w-2d").data)
+  end
+
+  def test_coerce_treats_number_as_seconds
+    assert_equal({:seconds => 2}, Period.coerce(2).data)
+  end
+
+  def test_coerce_treats_normal_period_key_as_one_of_that_period_type
+    assert_equal({:weeks => 1}, Period.coerce(:weeks).data)
+  end
+
+  def test_coerce_raises_error_if_obj_cannot_be_coerced
+    obj = Object.new
+    err = assert_raises(RuntimeError) { Period.coerce(obj) }
+    assert_equal "cannot coerce to Period: #{obj.inspect}", err.message
+  end
+
+  #
+  #
   # Period.period_type
   #
 
