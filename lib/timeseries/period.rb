@@ -107,7 +107,8 @@ class Timeseries
     end
 
     def snap_next(time)
-      snap(time).advance data
+      previous = snap(time)
+      previous == time ? previous : previous.advance(data)
     end
 
     # Returns a new period that would advance time to the previous natural
