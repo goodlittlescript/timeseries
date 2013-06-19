@@ -40,7 +40,7 @@ Options:
   end
 
   opts.on("-p", "--period PERIOD", "period (1s)") do |period|
-    options[:period] = Timeseries::Period.parse(period)
+    options[:period] = period
   end
 
   opts.on("-s", "--snap TYPE", "snap start/stop") do |code|
