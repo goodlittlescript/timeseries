@@ -158,6 +158,18 @@ class PeriodTest < Test::Unit::TestCase
     assert_equal(Time.parse("2010-01-01 01:30:00"), period.snap_next(time))
   end
 
+  def test_snap_previous_ignores_period_types_with_zero_value
+    time = Time.parse("2010-01-01 01:23:55")
+    period = Period.new(:minutes => 15, :seconds => 0, :hours => 0)
+    assert_equal(Time.parse("2010-01-01 01:15:00"), period.snap_previous(time))
+  end
+
+  def test_snap_next_ignores_period_types_with_zero_value
+    time = Time.parse("2010-01-01 01:23:55")
+    period = Period.new(:minutes => 15, :seconds => 0, :hours => 0)
+    assert_equal(Time.parse("2010-01-01 01:30:00"), period.snap_next(time))
+  end
+
   def self.snap_tests(desc, current_time, snap_pairs)
     snap_pairs.each_pair do |period_str, (previous_time, next_time)|
       test_suffix  = "#{desc}_#{period_str}".gsub(/\W/, "_")

@@ -112,7 +112,7 @@ class Timeseries
 
       period_types = [:seconds, :minutes, :hours]
       while period_type = period_types.shift
-        next unless data.has_key?(period_type)
+        next unless data.has_key?(period_type) && data[period_type] != 0
 
         delta.data[period_type] = delta.data[period_type] % data[period_type]
         period_types.each {|pt| delta.data[pt] = 0 }
