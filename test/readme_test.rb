@@ -51,5 +51,17 @@ class ReadmeTest < Test::Unit::TestCase
     "2010-03-31" => [:b, :c]
     }
     assert_equal(expected, series.collate([:a, :b, :c], :key_format => "%Y-%m-%d"))
+
+    series = Timeseries.create(
+      :start_time => Time.zone.parse("2010-01-01"),
+      :stop_time  => Time.zone.parse("2010-03-01"),
+      :period     => :months
+    )
+    expected = [
+    "2010-01-01T00:00:00Z",
+    "2010-02-01T00:00:00Z",
+    "2010-03-01T00:00:00Z"
+    ]
+    assert_equal(expected, series.map {|time| time.iso8601 })
   end
 end

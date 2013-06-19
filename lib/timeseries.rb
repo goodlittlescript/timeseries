@@ -25,6 +25,10 @@ class Timeseries
       end
     end
 
+    def create(options)
+      new normalize(options)
+    end
+
     private
 
     def solve_n_steps(options)

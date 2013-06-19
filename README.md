@@ -58,6 +58,21 @@ In code (the Chronic stuff is not *required* but it's what the executable does):
     # "2010-03-31T12:00:00Z"
     # ]
 
+For more flexible initialization use `create`, which will solve for
+`start_time`, `n_steps`, and `period` and parse periods.
+
+    series = Timeseries.create(
+      :start_time => Time.zone.parse("2010-01-01"),
+      :stop_time  => Time.zone.parse("2010-03-01"),
+      :period     => :month
+    )
+    series.map {|time| time.iso8601 }
+    # => [
+    # "2010-01-01T00:00:00Z",
+    # "2010-02-01T00:00:00Z",
+    # "2010-03-01T00:00:00Z"
+    # ]
+
 To collate interval-ending intervals from data corresponding to each step:
 
     series.collate([:a, :b, :c], :key_format => "%Y-%m-%d")

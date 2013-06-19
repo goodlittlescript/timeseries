@@ -67,8 +67,7 @@ Chronic.time_class = Time.zone
 options[:start_time] = Chronic.parse(start) if start
 options[:stop_time]  = Chronic.parse(stop) if stop
 
-options = Timeseries.normalize(options)
-timeseries = Timeseries.new(options)
+timeseries = Timeseries.create(options)
 timeseries.each do |step|
   puts step.strftime(format)
 end
