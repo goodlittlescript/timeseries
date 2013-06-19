@@ -46,12 +46,6 @@ class ReadmeTest < Test::Unit::TestCase
     ]
     assert_equal(expected, series.map {|time| time.iso8601 })
 
-    expected = {
-    "2010-02-28" => [:a, :b],
-    "2010-03-31" => [:b, :c]
-    }
-    assert_equal(expected, series.collate([:a, :b, :c], :key_format => "%Y-%m-%d"))
-
     series = Timeseries.create(
       :start_time => Chronic.parse("00:00:00"),
       :stop_time  => Chronic.parse("01:00:00"),
@@ -65,5 +59,13 @@ class ReadmeTest < Test::Unit::TestCase
     "01:00"
     ]
     assert_equal(expected, series.map {|time| time.strftime("%H:%M") })
+
+    expected = {
+    "00:15" => [:a, :b],
+    "00:30" => [:b, :c],
+    "00:45" => [:c, :d],
+    "01:00" => [:d, :e]
+    }
+    assert_equal(expected, series.collate([:a, :b, :c, :d, :e], :key_format => "%H:%M"))
   end
 end

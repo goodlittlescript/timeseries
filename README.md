@@ -42,7 +42,7 @@ From the command line:
     00:45
     01:00
 
-In code (the Chronic stuff is not *required* but it's what the executable does):
+In code (the Chronic stuff is not required but it's what the executable does):
 
     Time.zone = "UTC"
     Chronic.time_class = Time.zone
@@ -58,8 +58,8 @@ In code (the Chronic stuff is not *required* but it's what the executable does):
     # "2010-03-31T12:00:00Z"
     # ]
 
-For more flexible initialization use `create`, which will solve for
-`start_time`, `n_steps`, and `period` and parse periods.
+Use `Timeseries.create` for more flexible initialization (solves for `n_steps`
+and parse periods).
 
     series = Timeseries.create(
       :start_time => Chronic.parse("00:00:00"),
@@ -77,10 +77,12 @@ For more flexible initialization use `create`, which will solve for
 
 To collate interval-ending intervals from data corresponding to each step:
 
-    series.collate([:a, :b, :c], :key_format => "%Y-%m-%d")
+    series.collate([:a, :b, :c, :d, :e], :key_format => "%H:%M")
     # => {
-    # "2010-02-28" => [:a, :b],
-    # "2010-03-31" => [:b, :c]
+    # "00:15" => [:a, :b],
+    # "00:30" => [:b, :c],
+    # "00:45" => [:c, :d],
+    # "01:00" => [:d, :e]
     # }
 
 ## Bugs
