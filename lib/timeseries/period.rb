@@ -75,7 +75,7 @@ class Timeseries
     end
 
     def reverse!
-      multiply(-1)
+      multiply!(-1)
     end
 
     def reverse

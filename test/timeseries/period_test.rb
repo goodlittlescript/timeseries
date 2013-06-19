@@ -75,6 +75,40 @@ class PeriodTest < Test::Unit::TestCase
     assert_equal 'invalid period string: "invalid"', err.message
   end
 
+  #
+  # reverse tests
+  #
+
+  def test_reverse_returns_new_period_with_reverse_period
+    period = Period.new(:minutes => 15, :seconds => -1)
+    result = period.reverse
+    assert_equal({:minutes => 15, :seconds => -1}, period.data)
+    assert_equal({:minutes => -15, :seconds => 1}, result.data)
+  end
+
+  def test_reverse_bang_reverses_period_in_self
+    period = Period.new(:minutes => 15)
+    assert_equal period, period.reverse!
+    assert_equal({:minutes => -15}, period.data)
+  end
+
+  #
+  # multiply tests
+  #
+
+  def test_multiply_returns_new_period_with_each_period_component_multiplied_by_factor
+    period = Period.new(:minutes => 15, :seconds => -1)
+    result = period.multiply(2)
+    assert_equal({:minutes => 15, :seconds => -1}, period.data)
+    assert_equal({:minutes => 30, :seconds => -2}, result.data)
+  end
+
+  def test_multiply_bang_multiplies_period_in_self
+    period = Period.new(:minutes => 15)
+    assert_equal period, period.multiply!(2)
+    assert_equal({:minutes => 30}, period.data)
+  end
+
   ###################################################
   # Snap Tests
   ###################################################
