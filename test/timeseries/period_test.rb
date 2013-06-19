@@ -85,32 +85,32 @@ class PeriodTest < Test::Unit::TestCase
     assert_equal Time.parse("2011-02-03 04:15:00"), period.snap(time)
   end
 
-  def self.snap_tests(desc, snap_pairs)
-    snap_pairs.each_pair do |period_str, snap_time_str|
+  def self.snap_tests(desc, current_time, snap_pairs)
+    snap_pairs.each_pair do |period_str, (previous_time, next_time)|
       test_suffix  = "#{desc}_#{period_str}".gsub(/\W/, "_")
       class_eval %{
         def test_snap_for_#{test_suffix}
           period = Period.parse("#{period_str}")
-          snap_time = period.snap(arbitrary_time)
-          assert_equal("#{snap_time_str}", snap_time.strftime("%Y-%m-%d %H:%M:%S"))
+          current_time = Time.parse("#{current_time}")
+          assert_equal("#{previous_time}", period.snap(current_time).strftime("%Y-%m-%d %H:%M:%S"))
+        end
+
+        def test_snap_next_for_#{test_suffix}
+          period = Period.parse("#{period_str}")
+          current_time = Time.parse("#{current_time}")
+          assert_equal("#{next_time}", period.snap_next(current_time).strftime("%Y-%m-%d %H:%M:%S"))
         end
       }
     end
   end
 
-  # Ok, not quite arbitrary.  This is a time that is not at the beginning of a
-  # year, month, week, day, hour, or minute.
-  def arbitrary_time
-    Time.parse("2011-02-03 04:05:06")
-  end
-
   SNAP_TIMES = {
-    "1sec"    => "2011-02-03 04:05:06",
-    "1min"    => "2011-02-03 04:05:00",
-    "1hr"     => "2011-02-03 04:00:00",
-    "15sec"   => "2011-02-03 04:05:00",
-    "15min"   => "2011-02-03 04:00:00",
-    "15hr"    => "2011-02-03 00:00:00"
+    "1sec"    => ["2011-02-03 04:05:06", "2011-02-03 04:05:07"],
+    "1min"    => ["2011-02-03 04:05:00", "2011-02-03 04:06:00"],
+    "1hr"     => ["2011-02-03 04:00:00", "2011-02-03 05:00:00"],
+    "15sec"   => ["2011-02-03 04:05:00", "2011-02-03 04:05:15"],
+    "15min"   => ["2011-02-03 04:00:00", "2011-02-03 04:15:00"],
+    "15hr"    => ["2011-02-03 00:00:00", "2011-02-03 15:00:00"]
   }
-  snap_tests("basic", SNAP_TIMES)
+  snap_tests("basic", "2011-02-03 04:05:06", SNAP_TIMES)
 end
