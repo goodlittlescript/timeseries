@@ -14,7 +14,7 @@ class Timeseries
 
     def normalize(options)
       keys = [:stop_time, :period, :n_steps]
-      signature = keys.map {|key| options.has_key?(key) ? 1 : 0 }
+      signature = keys.map {|key| options[key].present? ? 1 : 0 }
 
       case signature
       when [1, 1, 0] then solve_n_steps(options)
@@ -57,6 +57,8 @@ class Timeseries
     end
 
     def snap_time(period, time, snap_type)
+      return nil if time.nil?
+
       case snap_type
       when :previous then period.snap_previous(time)
       when :next     then period.snap_next(time)

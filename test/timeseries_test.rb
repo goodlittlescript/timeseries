@@ -93,6 +93,26 @@ class TimeseriesTest < Test::Unit::TestCase
     assert_equal(5, options[:n_steps])
   end
 
+  def test_normalize_snap_nil_start_raises_no_error
+    options = Timeseries.normalize(
+      :start_time => nil,
+      :n_steps    => 2,
+      :period     => {:hours => 1},
+      :snap_start_time => :previous
+    )
+    assert_equal(nil, options[:start_time])
+  end
+
+  def test_normalize_ignores_nil_values
+    options = Timeseries.normalize(
+      :start_time => Time.parse("2010-01-01 00:00:00"),
+      :stop_time  => nil,
+      :n_steps    => 2,
+      :period     => {:minutes => 15}
+    )
+    assert_equal(nil, options[:stop_time])
+  end
+
   #
   # Timeseries.n_steps special cases
   #
