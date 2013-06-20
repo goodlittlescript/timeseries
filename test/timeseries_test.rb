@@ -572,4 +572,14 @@ class TimeseriesTest < Test::Unit::TestCase
     assert_equal 0, series.count
     assert_equal [], series.intervals
   end
+
+  def test_intervals_for_infinite_series_raises_error
+    infinite_series = Timeseries.new(
+      :start_time => Time.parse("2010-01-01 00:00:00 UTC"),
+      :period     => {:minutes => 15}
+    )
+
+    err = assert_raises(RuntimeError) { infinite_series.intervals }
+    assert_equal "unavailable for infinie series", err.message
+  end
 end

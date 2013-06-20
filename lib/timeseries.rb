@@ -175,6 +175,7 @@ class Timeseries
   end
 
   def intervals(options = {})
+    raise "unavailable for infinie series" if n_steps.nil?
     intervals = pair_data(self)
 
     if format = options.fetch(:format, nil)
