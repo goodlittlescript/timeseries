@@ -157,12 +157,7 @@ class Timeseries
     else raise "invalid interval_type: #{interval_type.inspect}"
     end
 
-    pairs = []
-    data.each_with_index do |datum, index|
-      pairs[index] = [datum]
-      pairs[index - 1] << datum if index > 0
-    end
-    pairs.pop
+    pairs = pair_data(data)
 
     intervals = {}
     each_with_index do |step_time, index|
@@ -176,12 +171,7 @@ class Timeseries
   end
 
   def intervals(options = {})
-    intervals = []
-    each_with_index do |time, index|
-      intervals[index] = [time]
-      intervals[index - 1] << time if index > 0
-    end
-    intervals.pop
+    intervals = pair_data(self)
 
     if format = options.fetch(:format, nil)
       intervals.each do |times|
@@ -192,5 +182,17 @@ class Timeseries
     end
 
     intervals
+  end
+
+  private
+
+  def pair_data(data)
+    pairs = []
+    data.each_with_index do |datum, index|
+      pairs[index] = [datum]
+      pairs[index - 1] << datum if index > 0
+    end
+    pairs.pop
+    pairs
   end
 end
