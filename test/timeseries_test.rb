@@ -470,4 +470,45 @@ class TimeseriesTest < Test::Unit::TestCase
     err = assert_raises(RuntimeError) { quarter_hour_series.collate(quarter_hour_data, :interval_type => :invalid) }
     assert_equal "invalid interval_type: :invalid", err.message
   end
+
+  #
+  # intervals
+  #
+
+  def test_intervals_returns_array_of_intervals
+    intervals = []
+    quarter_hour_series.intervals.each do |previous, current|
+      intervals << [previous, current].map {|time| time.strftime("%Y-%m-%d %H:%M:%S %Z") }
+    end
+
+    assert_equal([
+      ["2010-01-01 00:00:00 UTC", "2010-01-01 00:15:00 UTC"],
+      ["2010-01-01 00:15:00 UTC", "2010-01-01 00:30:00 UTC"],
+      ["2010-01-01 00:30:00 UTC", "2010-01-01 00:45:00 UTC"],
+      ["2010-01-01 00:45:00 UTC", "2010-01-01 01:00:00 UTC"]
+    ], intervals)
+  end
+
+  def test_intervals_accepts_format
+    intervals = quarter_hour_series.intervals(:format => "%Y-%m-%d %H:%M:%S %Z")
+
+    assert_equal([
+      ["2010-01-01 00:00:00 UTC", "2010-01-01 00:15:00 UTC"],
+      ["2010-01-01 00:15:00 UTC", "2010-01-01 00:30:00 UTC"],
+      ["2010-01-01 00:30:00 UTC", "2010-01-01 00:45:00 UTC"],
+      ["2010-01-01 00:45:00 UTC", "2010-01-01 01:00:00 UTC"]
+    ], intervals)
+  end
+
+  def test_intervals_returns_empty_intervals_for_single_step_series
+    series = Timeseries.new(:n_steps => 1)
+    assert_equal 1, series.count
+    assert_equal [], series.intervals
+  end
+
+  def test_intervals_returns_empty_intervals_for_empty_series
+    series = Timeseries.new(:n_steps => 0)
+    assert_equal 0, series.count
+    assert_equal [], series.intervals
+  end
 end

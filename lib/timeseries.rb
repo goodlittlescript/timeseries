@@ -174,4 +174,23 @@ class Timeseries
     end
     intervals
   end
+
+  def intervals(options = {})
+    intervals = []
+    each_with_index do |time, index|
+      intervals[index] = [time]
+      intervals[index - 1] << time if index > 0
+    end
+    intervals.pop
+
+    if format = options.fetch(:format, nil)
+      intervals.each do |times|
+        times.map! do |time|
+          time.strftime(format)
+        end
+      end
+    end
+
+    intervals
+  end
 end
