@@ -405,6 +405,20 @@ class TimeseriesTest < Test::Unit::TestCase
   # series_tests("leap_second", LEAP_SECOND_SERIES) { Time.zone = "UTC" }
 
   #
+  # each test
+  #
+
+  def test_each_without_n_steps_loops_quote_indefinitely_unquote
+    series = Timeseries.new({})
+    count = 100
+    series.each do |time|
+      break if count == 0
+      count -= 1
+    end
+    assert_equal 0, count
+  end
+
+  #
   # collate test
   #
 

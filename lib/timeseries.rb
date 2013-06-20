@@ -78,7 +78,7 @@ class Timeseries
   # http://www.timeanddate.com/library/abbreviations/timezones/
   def initialize(options = {})
     @start_time = options.fetch(:start_time, Time.now)
-    @n_steps    = options.fetch(:n_steps, 0)
+    @n_steps    = options.fetch(:n_steps, nil)
     @period     = options.fetch(:period, {})
     @offset     = options.fetch(:offset, 0)
     @zone       = options.fetch(:zone, Time.zone || "UTC")
@@ -139,11 +139,17 @@ class Timeseries
     return to_enum(:each) unless block_given?
 
     index = offset
-    step_size = n_steps < 0 ? -1 : 1
-
-    n_steps.abs.times do
-      yield at(index)
-      index += step_size
+    if n_steps
+      step_size = n_steps < 0 ? -1 : 1
+      n_steps.abs.times do
+        yield at(index)
+        index += step_size
+      end
+    else
+      loop do
+        yield at(index)
+        index += 1
+      end
     end
   end
 
