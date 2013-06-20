@@ -66,6 +66,6 @@ class ReadmeTest < Test::Unit::TestCase
     "00:45" => [:c, :d],
     "01:00" => [:d, :e]
     }
-    assert_equal(expected, series.collate([:a, :b, :c, :d, :e], :key_format => "%H:%M"))
+    assert_equal(expected, series.collate([:a, :b, :c, :d, :e], :format => "%H:%M"))
   end
 end

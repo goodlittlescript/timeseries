@@ -77,7 +77,7 @@ and parse periods).
 
 To collate interval-ending intervals from data corresponding to each step:
 
-    series.collate([:a, :b, :c, :d, :e], :key_format => "%H:%M")
+    series.collate([:a, :b, :c, :d, :e], :format => "%H:%M")
     # => {
     # "00:15" => [:a, :b],
     # "00:30" => [:b, :c],

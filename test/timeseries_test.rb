@@ -434,8 +434,8 @@ class TimeseriesTest < Test::Unit::TestCase
     }, intervals)
   end
 
-  def test_collate_allows_key_format
-    intervals = quarter_hour_series.collate(quarter_hour_data, :key_format => "%H:%M")
+  def test_collate_allows_format
+    intervals = quarter_hour_series.collate(quarter_hour_data, :format => "%H:%M")
     assert_equal({
       "00:15" => [:a, :b],
       "00:30" => [:b, :c],
@@ -445,7 +445,7 @@ class TimeseriesTest < Test::Unit::TestCase
   end
 
   def test_collate_yields_intervals_to_block_if_given
-    intervals = quarter_hour_series.collate(quarter_hour_data, :key_format => "%Y-%m-%d %H:%M:%S %Z") do |previous, current|
+    intervals = quarter_hour_series.collate(quarter_hour_data, :format => "%Y-%m-%d %H:%M:%S %Z") do |previous, current|
       [previous.to_s, current.to_s.upcase]
     end
     assert_equal({
@@ -457,7 +457,7 @@ class TimeseriesTest < Test::Unit::TestCase
   end
 
   def test_collate_allows_interval_beginning_collation
-    intervals = quarter_hour_series.collate(quarter_hour_data, :interval_type => :beginning, :key_format => "%Y-%m-%d %H:%M:%S %Z")
+    intervals = quarter_hour_series.collate(quarter_hour_data, :interval_type => :beginning, :format => "%Y-%m-%d %H:%M:%S %Z")
     assert_equal({
       "2010-01-01 00:00:00 UTC" => [:a, :b],
       "2010-01-01 00:15:00 UTC" => [:b, :c],
