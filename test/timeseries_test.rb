@@ -490,6 +490,48 @@ class TimeseriesTest < Test::Unit::TestCase
     assert_equal "invalid interval_type: :invalid", err.message
   end
 
+  def test_collate_data_collates_only_as_many_pairs_as_possible
+    insufficient_data = quarter_hour_data
+    insufficient_data.pop
+
+    intervals = quarter_hour_series.collate(insufficient_data, :format => "%H:%M")
+    assert_equal({
+      "00:15" => [:a, :b],
+      "00:30" => [:b, :c],
+      "00:45" => [:c, :d]
+    }, intervals)
+  end
+
+  def test_collate_data_for_infinite_series
+    infinite_series = Timeseries.new(
+      :start_time => Time.parse("2010-01-01 00:00:00 UTC"),
+      :period     => {:minutes => 15}
+    )
+
+    intervals = infinite_series.collate(quarter_hour_data, :format => "%H:%M")
+    assert_equal({
+      "00:15" => [:a, :b],
+      "00:30" => [:b, :c],
+      "00:45" => [:c, :d],
+      "01:00" => [:d, :e]
+    }, intervals)
+  end
+
+  def test_collate_interval_beginning_data_for_infinite_series
+    infinite_series = Timeseries.new(
+      :start_time => Time.parse("2010-01-01 00:00:00 UTC"),
+      :period     => {:minutes => 15}
+    )
+
+    intervals = infinite_series.collate(quarter_hour_data, :interval_type => :beginning, :format => "%H:%M")
+    assert_equal({
+      "00:00" => [:a, :b],
+      "00:15" => [:b, :c],
+      "00:30" => [:c, :d],
+      "00:45" => [:d, :e]
+    }, intervals)
+  end
+
   #
   # intervals
   #

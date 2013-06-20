@@ -157,20 +157,18 @@ class Timeseries
     format = options.fetch(:format, nil)
     interval_type = options.fetch(:interval_type, :ending)
 
+    pairs = pair_data(data)
+
     case interval_type
-    when :ending    then skip_index, offset = 0, 1
-    when :beginning then skip_index, offset = (n_steps - 1), 0
+    when :ending    then offset = 1
+    when :beginning then offset = 0
     else raise "invalid interval_type: #{interval_type.inspect}"
     end
 
-    pairs = pair_data(data)
-
     intervals = {}
-    each_with_index do |step_time, index|
-      next if index == skip_index
-
+    pairs.each_with_index do |interval, index|
+      step_time = at(index + offset)
       key = format ? step_time.strftime(format) : step_time
-      interval = pairs[index - offset]
       intervals[key] = block_given? ? yield(*interval) : interval
     end
     intervals
