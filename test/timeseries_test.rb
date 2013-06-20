@@ -418,6 +418,11 @@ class TimeseriesTest < Test::Unit::TestCase
     assert_equal 0, count
   end
 
+  def test_each_returns_Enumerator
+    series = Timeseries.new({})
+    assert series.each.kind_of?(Enumerator)
+  end
+
   #
   # collate test
   #
