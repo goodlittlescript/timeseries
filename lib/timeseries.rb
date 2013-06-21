@@ -1,5 +1,6 @@
 require "active_support/time"
 require "timeseries/period"
+require "timeseries/utils"
 
 class Timeseries
   class << self
@@ -33,8 +34,8 @@ class Timeseries
 
     def solve_n_steps(options)
       period = Period.coerce(options.fetch(:period, {}))
-      start_time = options.fetch(:start_time, Time.zone.now)
-      stop_time  = options.fetch(:stop_time, start_time)
+      start_time = Utils.coerce options.fetch(:start_time, Time.zone.now)
+      stop_time  = Utils.coerce options.fetch(:stop_time, start_time)
 
       options[:start_time] = snap_time(period, start_time, options[:snap_start_time])
       options[:stop_time]  = snap_time(period, stop_time, options[:snap_stop_time])
@@ -49,7 +50,7 @@ class Timeseries
 
     def solve_stop_time(options)
       period = Period.coerce(options.fetch(:period, {}))
-      start_time = options.fetch(:start_time, Time.zone.now)
+      start_time = Utils.coerce options.fetch(:start_time, Time.zone.now)
 
       options[:start_time] = snap_time(period, start_time, options[:snap_start_time])
       options[:period]     = period
