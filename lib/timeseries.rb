@@ -33,7 +33,7 @@ class Timeseries
 
     def solve_n_steps(options)
       period = Period.coerce(options.fetch(:period, {}))
-      start_time = options.fetch(:start_time, Time.now)
+      start_time = options.fetch(:start_time, Time.zone.now)
       stop_time  = options.fetch(:stop_time, start_time)
 
       options[:start_time] = snap_time(period, start_time, options[:snap_start_time])
@@ -49,7 +49,7 @@ class Timeseries
 
     def solve_stop_time(options)
       period = Period.coerce(options.fetch(:period, {}))
-      start_time = options.fetch(:start_time, Time.now)
+      start_time = options.fetch(:start_time, Time.zone.now)
 
       options[:start_time] = snap_time(period, start_time, options[:snap_start_time])
       options[:period]     = period
@@ -70,41 +70,42 @@ class Timeseries
 
   include Enumerable
 
-  attr_reader :start_time_in_zone
   attr_reader :start_time
   attr_reader :n_steps
   attr_reader :period
   attr_reader :offset
-  attr_reader :zone
 
   # http://www.timeanddate.com/library/abbreviations/timezones/
   def initialize(options = {})
-    @start_time = options.fetch(:start_time, Time.now)
+    @start_time = options.fetch(:start_time, Time.zone.now)
     @n_steps    = options.fetch(:n_steps, nil)
     @period     = options.fetch(:period, {})
     @offset     = options.fetch(:offset, 0)
-    @zone       = options.fetch(:zone, Time.zone || "UTC")
 
-    @period     = Period.coerce(@period)
-    @start_time_in_zone = @start_time.in_time_zone(@zone)
+    unless @start_time.kind_of?(ActiveSupport::TimeWithZone)
+      raise "invalid start_time: #{@start_time.inspect} (must be a TimeWithZone)"
+    end
+    @period = Period.coerce(@period)
+  end
+
+  def zone
+    start_time.time_zone
   end
 
   def at(index)
-    Time.use_zone(zone) do
-      period_hash = (period * index).data
-      start_time_in_zone.advance(period_hash)
-    end
+    period_hash = (period * index).data
+    start_time.advance(period_hash)
   end
 
   def avg_sec_per_step
-    @avg_sec_per_step ||= (at(10) - start_time_in_zone) / 10
+    @avg_sec_per_step ||= (at(10) - start_time) / 10
   end
 
   def n_steps_to(stop_time)
-    stop_time_in_zone = stop_time.in_time_zone(zone)
+    stop_time = stop_time.in_time_zone(zone)
 
     if avg_sec_per_step == 0
-      if start_time_in_zone == stop_time_in_zone
+      if start_time == stop_time
         return 0
       else
         raise "empty period"
@@ -116,15 +117,15 @@ class Timeseries
     # get an average time-per-period and guess the number of steps in one
     # shot and correct from there.
 
-    n_steps = ((stop_time_in_zone - start_time_in_zone) / avg_sec_per_step).to_i
+    n_steps = ((stop_time - start_time) / avg_sec_per_step).to_i
     current = at(n_steps)
 
-    while increasing? ? current > stop_time_in_zone : current < stop_time_in_zone
+    while increasing? ? current > stop_time : current < stop_time
       n_steps -= 1
       current = at(n_steps)
     end
 
-    until increasing? ? current > stop_time_in_zone : current < stop_time_in_zone
+    until increasing? ? current > stop_time : current < stop_time
       n_steps += 1
       current = at(n_steps)
     end
