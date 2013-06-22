@@ -3,15 +3,6 @@ require "timeseries/utils"
 
 class Timeseries
   class << self
-    # Returns the number of steps from start_time to stop_time (inclusive)
-    # given period.  Returns nil if stop_time cannot be reached, for example
-    # when stop_time < start_time for a positive period or if period is 0.
-    def n_steps(options = {})
-      series = new options
-      stop_time = options.fetch(:stop_time, series.start_time)
-      series.n_steps_to(stop_time)
-    end
-
     def normalize(options)
       options = symbolize(options)
 
@@ -112,7 +103,7 @@ class Timeseries
       options = set_defaults(options)
       options[:start_time] = snap_time(*options.values_at(:period, :start_time, :snap_start_time))
       options[:stop_time]  = snap_time(*options.values_at(:period, :stop_time,  :snap_stop_time))
-      options[:n_steps]    = n_steps(options)
+      options[:n_steps]    = new(options).n_steps_to(options[:stop_time])
       options
     end
 
