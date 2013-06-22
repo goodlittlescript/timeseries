@@ -1,6 +1,5 @@
 require File.expand_path("../helper", __FILE__)
 require "timeseries"
-require "chronic"
 
 class ReadmeTest < Test::Unit::TestCase
 
@@ -16,9 +15,9 @@ class ReadmeTest < Test::Unit::TestCase
   def test_command_line_usage
     output = `timeseries 2010-01-31 -n 3 -p 1month`
     assert_equal(%{
-2010-01-31 12:00:00 UTC
-2010-02-28 12:00:00 UTC
-2010-03-31 12:00:00 UTC
+2010-01-31 00:00:00 UTC
+2010-02-28 00:00:00 UTC
+2010-03-31 00:00:00 UTC
 }.lstrip, output)
 
     output = `timeseries "00:00:00" "01:00:00" -p 15m -f "%H:%M"`
@@ -33,22 +32,21 @@ class ReadmeTest < Test::Unit::TestCase
 
   def test_usage_in_code
     Time.zone = "UTC"
-    Chronic.time_class = Time.zone
     series = Timeseries.new(
-      :start_time => Chronic.parse("2010-01-31"),
+      :start_time => Time.zone.parse("2010-01-31"),
       :n_steps    => 3,
       :period     => {:months => 1}
     )
     expected = [
-    "2010-01-31T12:00:00Z",
-    "2010-02-28T12:00:00Z",
-    "2010-03-31T12:00:00Z"
+    "2010-01-31T00:00:00Z",
+    "2010-02-28T00:00:00Z",
+    "2010-03-31T00:00:00Z"
     ]
     assert_equal(expected, series.map {|time| time.iso8601 })
 
     series = Timeseries.create(
-      :start_time => Chronic.parse("00:00:00"),
-      :stop_time  => Chronic.parse("01:00:00"),
+      :start_time => "00:00:00",
+      :stop_time  => "01:00:00",
       :period     => "15m"
     )
     expected = [

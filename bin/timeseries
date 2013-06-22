@@ -2,7 +2,6 @@
 begin
 require 'optparse'
 require "timeseries"
-require "chronic"
 
 options = {}
 format  = "%Y-%m-%d %H:%M:%S %Z"
@@ -63,9 +62,8 @@ if ARGV.length > 2
 end
 start, stop = ARGV.shift(2)
 
-Chronic.time_class = Time.zone
-options[:start_time] = Chronic.parse(start) if start
-options[:stop_time]  = Chronic.parse(stop) if stop
+options[:start_time] = start if start
+options[:stop_time]  = stop if stop
 
 timeseries = Timeseries.create(options)
 timeseries.each do |step|

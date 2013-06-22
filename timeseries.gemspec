@@ -18,7 +18,6 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
 
   gem.add_dependency "activesupport", "~> 3.1"
-  gem.add_dependency "chronic", "~> 0.6"
   gem.add_dependency "tzinfo", "~> 0.3"
 
   # for 3.1.3, which cannot require active_support/time without it

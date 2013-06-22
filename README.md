@@ -30,9 +30,9 @@ From the command line:
 
     # start, n_steps, period
     $ timeseries 2010-01-31 -n 3 -p 1month
-    2010-01-31 12:00:00 UTC
-    2010-02-28 12:00:00 UTC
-    2010-03-31 12:00:00 UTC
+    2010-01-31 00:00:00 UTC
+    2010-02-28 00:00:00 UTC
+    2010-03-31 00:00:00 UTC
 
     # start, stop, period, format
     $ timeseries "00:00:00" "01:00:00" -p 15m -f "%H:%M"
@@ -42,28 +42,27 @@ From the command line:
     00:45
     01:00
 
-In code (the Chronic stuff is not required but it's what the executable does):
+In code:
 
     Time.zone = "UTC"
-    Chronic.time_class = Time.zone
     series = Timeseries.new(
-      :start_time => Chronic.parse("2010-01-31"),
+      :start_time => Time.zone.parse("2010-01-31"),
       :n_steps    => 3,
       :period     => {:months => 1}
     )
     series.map {|time| time.iso8601 }
     # => [
-    # "2010-01-31T12:00:00Z",
-    # "2010-02-28T12:00:00Z",
-    # "2010-03-31T12:00:00Z"
+    # "2010-01-31T00:00:00Z",
+    # "2010-02-28T00:00:00Z",
+    # "2010-03-31T00:00:00Z"
     # ]
 
-Use `Timeseries.create` for more flexible initialization (solves for `n_steps`
-and parse periods).
+Use `Timeseries.create` for more flexible initialization (coerces, parses,
+solves for unknowns).
 
     series = Timeseries.create(
-      :start_time => Chronic.parse("00:00:00"),
-      :stop_time  => Chronic.parse("01:00:00"),
+      :start_time => "00:00:00",
+      :stop_time  => "01:00:00",
       :period     => "15m"
     )
     series.map {|time| time.strftime("%H:%M") }
