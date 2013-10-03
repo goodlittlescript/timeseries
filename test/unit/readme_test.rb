@@ -13,14 +13,14 @@ class ReadmeTest < Test::Unit::TestCase
   end
 
   def test_command_line_usage
-    output = `timeseries 2010-01-31 -n 3 -p 1month`
+    output = `timeseries -s 2010-01-31 -n 3 -p 1month`
     assert_equal(%{
-2010-01-31 00:00:00 UTC
-2010-02-28 00:00:00 UTC
-2010-03-31 00:00:00 UTC
+2010-01-31T00:00:00Z
+2010-02-28T00:00:00Z
+2010-03-31T00:00:00Z
 }.lstrip, output)
 
-    output = `timeseries "00:00:00" "01:00:00" -p 15m -f "%H:%M"`
+    output = `timeseries -s "00:00:00" -t "01:00:00" -p 15m -f "%H:%M"`
     assert_equal(%{
 00:00
 00:15

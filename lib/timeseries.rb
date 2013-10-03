@@ -26,7 +26,7 @@ class Timeseries
         options[:period] = Period.coerce(period)
       end
 
-      keys = [:stop_time, :period, :n_steps]
+      keys = [:start_time, :stop_time, :period, :n_steps]
       signature = options.fetch(:signature) do
         keys.map do |key|
           options[key].present? ? key : nil
@@ -35,10 +35,11 @@ class Timeseries
       signature = keys & signature
 
       case signature
-      when [:stop_time, :period]           then solve_n_steps(options)
-      when [:stop_time,          :n_steps] then solve_period(options)
-      when [            :period, :n_steps] then solve_stop_time(options)
-      when [:stop_time, :period, :n_steps] then raise "too much information"
+      when [:start_time, :stop_time, :period          ] then solve_n_steps(options)
+      when [:start_time, :stop_time,          :n_steps] then solve_period(options)
+      when [:start_time,             :period, :n_steps] then solve_stop_time(options)
+      when [             :stop_time, :period, :n_steps] then raise "unable to solve stop_time,period,n_steps"
+      when [:start_time, :stop_time, :period, :n_steps] then raise "too much information"
       else raise "not enough information"
       end
     end

@@ -7,49 +7,20 @@ options = {
   :offset => 0,
   :period => "1s",
   :zone   => "UTC",
-  :format => "%Y-%m-%d %H:%M:%S %Z",
+  :format => 0,
   :signature => []
 }
 
 OptionParser.new do |opts|
   opts.banner = %{
-Usage: #{$0} [options] [START_TIME] [STOP_TIME]
+usage: timeseries [options] [PRINT_FORMATS...]
 
   Generate time series data.
 
-Options:
+options:
 }.lstrip
 
-  opts.on("-d", "--debug", "debug mode") do
-    $DEBUG = true
-  end
-
-  opts.on("-f", "--format FORMAT", "strftime format str (#{options[:format]})") do |str|
-    options[:format] = str
-  end
-
-  opts.on("-h", "--help", "print this help") do
-    puts opts
-    puts
-    exit
-  end
-
-  opts.on("-n", "--n-steps N", "number of steps") do |n_steps|
-    options[:n_steps] = n_steps.to_i
-    options[:signature] << :n_steps
-  end
-
-  opts.on("-o", "--offset OFFSET", "offset (#{options[:offset]})") do |offset|
-    options[:offset] = offset.to_i
-    options[:signature] << :offset
-  end
-
-  opts.on("-p", "--period PERIOD", "period (#{options[:period]})") do |period|
-    options[:period] = period
-    options[:signature] << :period
-  end
-
-  opts.on("-s", "--snap TYPE", "snap start/stop") do |code|
+  opts.on("-a", "--adjust TYPE", "snap start/stop") do |code|
     case code
     when "pp" then options.merge!(:snap_start_time => :previous, :snap_stop_time => :previous)
     when "pn", "outer" then options.merge!(:snap_start_time => :previous, :snap_stop_time => :next)
@@ -59,30 +30,91 @@ Options:
     end
   end
 
+  opts.on("-d", "--debug", "debug mode") do
+    $DEBUG = true
+  end
+
+  opts.on("-f", "--format FORMAT", "strftime format") do |str|
+    options[:format] = str
+  end
+
+  opts.on("-h", "--help", "print this help") do
+    puts opts
+    puts
+    exit
+  end
+
+  opts.on("-i", "--iso8601 [PRECISION]", "iso8601 format (0)") do |value|
+    options[:format] = value.to_i
+  end
+
+  opts.on("-n", "--n-steps N", "number of steps") do |n_steps|
+    options[:n_steps] = n_steps.to_i
+    options[:signature] << :n_steps
+  end
+
+  opts.on("-o", "--offset OFFSET", "offset (#{options[:offset]})") do |offset|
+    options[:offset] = offset.to_i
+  end
+
+  opts.on("-p", "--period PERIOD", "period (#{options[:period]})") do |period|
+    options[:period] = period
+    options[:signature] << :period
+  end
+
+  opts.on("-s", "--start START_TIME", "start time (now)") do |start_time|
+    options[:start_time] = start_time
+    options[:signature] << :start_time
+  end
+
+  opts.on("-t", "--stop STOP_TIME", "stop time (now)") do |stop_time|
+    options[:stop_time] = stop_time
+    options[:signature] << :stop_time
+  end
+
   opts.on("-z", "--zone ZONE", "timezone (#{options[:zone]})") do |zone|
     options[:zone] = zone
   end
 end.parse!
 
-if ARGV.length > 2
-  raise "extra arguments"
-end
-start, stop = ARGV.shift(2)
-
-if start
-  options[:start_time] = start
+Time.zone = options[:zone]
+now = Time.zone.now
+signature = options[:signature]
+case signature.uniq.length
+when 0
+  options[:start_time] = now
+  options[:stop_time]  = now
+  options[:signature] << :start_time
+  options[:signature] << :stop_time
+  options[:signature] << :period
+when 1
+  options[:start_time] = now
+  options[:stop_time]  = now
+  options[:signature] << :start_time
+  options[:signature] << :stop_time
+when 2
+  options[:start_time] = now
   options[:signature] << :start_time
 end
 
-if stop
-  options[:stop_time]  = stop
-  options[:signature] << :stop_time
+printformats = ARGV.dup; ARGV.clear
+if printformats.empty?
+  printformats << "%{time}"
 end
 
-Time.zone = options[:zone]
+format = options[:format]
+if format.kind_of?(Integer)
+  formatter = lambda {|time| time.iso8601(format) }
+else
+  formatter = lambda {|time| time.strftime(format) }
+end
+
 timeseries = Timeseries.create(options)
 timeseries.each do |step|
-  puts step.strftime(options[:format])
+  options[:time] = formatter.call(step)
+  printformats.each do |printformats|
+    puts printformats % options
+  end
 end
 
 rescue Interrupt

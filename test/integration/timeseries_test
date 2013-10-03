@@ -1,0 +1,43 @@
+#!/bin/bash
+. test/integration/helper
+
+#
+# usage
+#
+
+test_timeseries_with_no_inputs_prints_time_in_iso8601 () {
+timeseries | sed -e "s/[[:digit:]]/_/g" | assert_output "\
+____-__-__T__:__:__Z
+"
+}
+
+test_timeseries_prints_time_in_specified_print_formats () {
+timeseries -f '%Y-%m-%d' "a %{time}" "b %{time}" | assert_output "\
+a $(date -u +'%Y-%m-%d')
+b $(date -u +'%Y-%m-%d')
+"
+}
+
+#
+# -h,--help
+#
+
+test_timeseries_h_prints_help () {
+timeseries -h | grep -q 'usage: timeseries'
+}
+
+test_timeseries_help_prints_help () {
+timeseries --help | grep -q 'usage: timeseries'
+}
+
+#
+# -i
+#
+
+test_timeseries_i_prints_iso8601_with_precision () {
+timeseries -i 6 | sed -e "s/[[:digit:]]/_/g" | assert_output "\
+____-__-__T__:__:__.______Z
+"
+}
+
+. ts

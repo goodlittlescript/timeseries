@@ -29,13 +29,13 @@ collate data at each time step into intervals.
 From the command line:
 
     # start, n_steps, period
-    $ timeseries 2010-01-31 -n 3 -p 1month
+    $ timeseries -s 2010-01-31 -n 3 -p 1month
     2010-01-31 00:00:00 UTC
     2010-02-28 00:00:00 UTC
     2010-03-31 00:00:00 UTC
 
     # start, stop, period, format
-    $ timeseries "00:00:00" "01:00:00" -p 15m -f "%H:%M"
+    $ timeseries -s "00:00:00" -t "01:00:00" -p 15m -f "%H:%M"
     00:00
     00:15
     00:30
