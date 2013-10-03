@@ -9,7 +9,9 @@ options = {
   :period => "1s",
   :zone   => "UTC",
   :format => 0,
-  :signature => []
+  :signature => [],
+  :snap_start_time => :next,
+  :snap_stop_time => :previous
 }
 
 OptionParser.new do |opts|
@@ -21,12 +23,13 @@ usage: timeseries [options] [PRINT_FORMATS...]
 options:
 }.lstrip
 
-  opts.on("-a", "--adjust TYPE", "snap start/stop") do |code|
+  opts.on("-a", "--adjust TYPE", "snap start/stop (inner)") do |code|
     case code
-    when "pp" then options.merge!(:snap_start_time => :previous, :snap_stop_time => :previous)
+    when "pp"          then options.merge!(:snap_start_time => :previous, :snap_stop_time => :previous)
     when "pn", "outer" then options.merge!(:snap_start_time => :previous, :snap_stop_time => :next)
     when "np", "inner" then options.merge!(:snap_start_time => :next, :snap_stop_time => :previous)
-    when "nn" then options.merge!(:snap_start_time => :next, :snap_stop_time => :next)
+    when "nn"          then options.merge!(:snap_start_time => :next, :snap_stop_time => :next)
+    when "none"        then options.merge!(:snap_start_time => nil, :snap_stop_time => nil)
     else raise "invalid snap code: #{code}"
     end
   end

@@ -18,6 +18,14 @@ b $(date -u +'%Y-%m-%d')
 "
 }
 
+test_timeseries_snaps_inner_by_default () {
+timeseries -s "10:03" -t "10:16" -p 5m -f '%H:%M:%S' | assert_output "\
+10:05:00
+10:10:00
+10:15:00
+"
+}
+
 #
 # -h,--help
 #
