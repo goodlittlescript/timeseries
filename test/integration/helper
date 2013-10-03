@@ -1,0 +1,2 @@
+# Setup test paths
+export PATH="$PWD/bin:$PWD/vendor/ts/bin:$PATH"

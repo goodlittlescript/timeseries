@@ -1,0 +1,3 @@
+#!/bin/bash
+(bundle exec test/unit/suite.rb | cat) &&
+(bundle exec test/integration/suite)
