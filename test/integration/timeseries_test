@@ -27,6 +27,57 @@ timeseries -s "10:03" -t "10:16" -p 5m -f '%H:%M:%S' | assert_output "\
 }
 
 #
+# -k
+#
+
+test_timeseries_tick_reads_formats_from_stdin () {
+printf "%s %%{time}\n" a b |
+timeseries -f '%Y-%m-%d' -k | assert_output "\
+a $(date -u +'%Y-%m-%d')
+b $(date -u +'%Y-%m-%d')
+"
+}
+
+test_timeseries_tick_ignores_series_end () {
+printf "%s %%{time}\n" a b c d e |
+timeseries -f '%Y-%m-%d' -k -n 3 -p 1s | assert_output "\
+a $(date -u +'%Y-%m-%d')
+b $(date -u +'%Y-%m-%d')
+c $(date -u +'%Y-%m-%d')
+d $(date -u +'%Y-%m-%d')
+e $(date -u +'%Y-%m-%d')
+"
+}
+
+test_timeseries_tick_treats_args_as_files () {
+mkdir -p "$ts_test_dir"
+one="$ts_test_dir/one"
+two="$ts_test_dir/two"
+
+printf "%s %%{time}\n" a b > "$one"
+printf "%s %%{time}\n" c > "$two"
+
+timeseries -f '%Y-%m-%d' -k "$one" "$two" | assert_output "\
+a $(date -u +'%Y-%m-%d')
+b $(date -u +'%Y-%m-%d')
+c $(date -u +'%Y-%m-%d')
+"
+}
+
+#
+# -K
+#
+
+test_timeseries_series_tick_stops_according_to_series () {
+printf "%s %%{time}\n" a b c d e |
+timeseries -f '%Y-%m-%d' -K -n 3 -p 1s | assert_output "\
+a $(date -u +'%Y-%m-%d')
+b $(date -u +'%Y-%m-%d')
+c $(date -u +'%Y-%m-%d')
+"
+}
+
+#
 # -h,--help
 #
 

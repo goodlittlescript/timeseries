@@ -12,12 +12,13 @@ options = {
   :signature => [],
   :snap_start_time => :next,
   :snap_stop_time => :previous,
-  :unbuffer => false
+  :unbuffer => false,
+  :mode => :stream
 }
 
 OptionParser.new do |opts|
   opts.banner = %{
-usage: timeseries [options] [PRINT_FORMATS...]
+usage: timeseries [options] [PRINT_FORMATS...|FILES...]
 
   Generate time series data.
 
@@ -40,6 +41,14 @@ options:
 
   opts.on("-i", "--iso8601 [PRECISION]", "iso8601 format (0)") do |value|
     options[:format] = value.to_i
+  end
+
+  opts.on("-k", "--tick", "tick according to FILES") do
+    options[:mode] = :tick
+  end
+
+  opts.on("-K", "--series-tick", "tick, limited by series") do
+    options[:mode] = :series_tick
   end
 
   opts.on("-n", "--n-steps N", "number of steps (#{options[:n_steps]})") do |n_steps|
@@ -106,11 +115,6 @@ when 2
   options[:signature] << :start_time
 end
 
-printformats = ARGV.dup; ARGV.clear
-if printformats.empty?
-  printformats << "%{time}"
-end
-
 format = options[:format]
 if format.kind_of?(Integer)
   formatter = lambda {|time| time.iso8601(format) }
@@ -123,10 +127,35 @@ if options[:unbuffer]
 end
 
 timeseries = Timeseries.create(options)
-timeseries.each do |step|
-  options[:time] = formatter.call(step)
-  printformats.each do |printformats|
-    puts printformats % options
+
+case mode = options[:mode]
+when :stream
+  printformats = ARGV.dup; ARGV.clear
+  if printformats.empty?
+    printformats << "%{time}"
+  end
+
+  timeseries.each do |step|
+    options[:time] = formatter.call(step)
+    printformats.each do |printformats|
+      puts printformats % options
+    end
+  end
+when :tick
+  index = 0
+  while printformat = ARGF.gets
+    step = timeseries.at(index)
+    options[:time] = formatter.call(step)
+    print printformat % options
+  end
+when :series_tick
+  timeseries.each do |step|
+    if printformat = ARGF.gets
+      options[:time] = formatter.call(step)
+      print printformat % options
+    else
+      break
+    end
   end
 end
 
