@@ -23,17 +23,6 @@ usage: timeseries [options] [PRINT_FORMATS...]
 options:
 }.lstrip
 
-  opts.on("-a", "--adjust TYPE", "snap start/stop (inner)") do |code|
-    case code
-    when "pp"          then options.merge!(:snap_start_time => :previous, :snap_stop_time => :previous)
-    when "pn", "outer" then options.merge!(:snap_start_time => :previous, :snap_stop_time => :next)
-    when "np", "inner" then options.merge!(:snap_start_time => :next, :snap_stop_time => :previous)
-    when "nn"          then options.merge!(:snap_start_time => :next, :snap_stop_time => :next)
-    when "none"        then options.merge!(:snap_start_time => nil, :snap_stop_time => nil)
-    else raise "invalid snap code: #{code}"
-    end
-  end
-
   opts.on("-d", "--debug", "debug mode") do
     $DEBUG = true
   end
@@ -64,6 +53,17 @@ options:
   opts.on("-p", "--period PERIOD", "period (#{options[:period]})") do |period|
     options[:period] = period
     options[:signature] << :period
+  end
+
+  opts.on("-r", "--round TYPE", "round start/stop (inner)") do |code|
+    case code
+    when "pp"          then options.merge!(:snap_start_time => :previous, :snap_stop_time => :previous)
+    when "pn", "outer" then options.merge!(:snap_start_time => :previous, :snap_stop_time => :next)
+    when "np", "inner" then options.merge!(:snap_start_time => :next, :snap_stop_time => :previous)
+    when "nn"          then options.merge!(:snap_start_time => :next, :snap_stop_time => :next)
+    when "none"        then options.merge!(:snap_start_time => nil, :snap_stop_time => nil)
+    else raise "invalid rounding type: #{code}"
+    end
   end
 
   opts.on("-s", "--start START_TIME", "start time (now)") do |start_time|
