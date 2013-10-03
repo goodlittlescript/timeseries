@@ -3,9 +3,13 @@ begin
 require 'optparse'
 require "timeseries"
 
-options = {}
-format  = "%Y-%m-%d %H:%M:%S %Z"
-Time.zone = "UTC"
+options = {
+  :offset => 0,
+  :period => "1s",
+  :zone   => "UTC",
+  :format => "%Y-%m-%d %H:%M:%S %Z",
+  :signature => []
+}
 
 OptionParser.new do |opts|
   opts.banner = %{
@@ -20,8 +24,8 @@ Options:
     $DEBUG = true
   end
 
-  opts.on("-f", "--format FORMAT", "strftime format str (#{format})") do |str|
-    format = str
+  opts.on("-f", "--format FORMAT", "strftime format str (#{options[:format]})") do |str|
+    options[:format] = str
   end
 
   opts.on("-h", "--help", "print this help") do
@@ -32,14 +36,17 @@ Options:
 
   opts.on("-n", "--n-steps N", "number of steps") do |n_steps|
     options[:n_steps] = n_steps.to_i
+    options[:signature] << :n_steps
   end
 
-  opts.on("-o", "--offset OFFSET", "offset (0)") do |offset|
+  opts.on("-o", "--offset OFFSET", "offset (#{options[:offset]})") do |offset|
     options[:offset] = offset.to_i
+    options[:signature] << :offset
   end
 
-  opts.on("-p", "--period PERIOD", "period (1s)") do |period|
+  opts.on("-p", "--period PERIOD", "period (#{options[:period]})") do |period|
     options[:period] = period
+    options[:signature] << :period
   end
 
   opts.on("-s", "--snap TYPE", "snap start/stop") do |code|
@@ -52,8 +59,8 @@ Options:
     end
   end
 
-  opts.on("-z", "--zone ZONE", "timezone (UTC)") do |zone|
-    Time.zone = zone
+  opts.on("-z", "--zone ZONE", "timezone (#{options[:zone]})") do |zone|
+    options[:zone] = zone
   end
 end.parse!
 
@@ -62,12 +69,20 @@ if ARGV.length > 2
 end
 start, stop = ARGV.shift(2)
 
-options[:start_time] = start if start
-options[:stop_time]  = stop if stop
+if start
+  options[:start_time] = start
+  options[:signature] << :start_time
+end
 
+if stop
+  options[:stop_time]  = stop
+  options[:signature] << :stop_time
+end
+
+Time.zone = options[:zone]
 timeseries = Timeseries.create(options)
 timeseries.each do |step|
-  puts step.strftime(format)
+  puts step.strftime(options[:format])
 end
 
 rescue Interrupt

@@ -27,13 +27,18 @@ class Timeseries
       end
 
       keys = [:stop_time, :period, :n_steps]
-      signature = keys.map {|key| options[key].present? ? 1 : 0 }
+      signature = options.fetch(:signature) do
+        keys.map do |key|
+          options[key].present? ? key : nil
+        end
+      end
+      signature = keys & signature
 
       case signature
-      when [1, 1, 0] then solve_n_steps(options)
-      when [1, 0, 1] then solve_period(options)
-      when [0, 1, 1] then solve_stop_time(options)
-      when [1, 1, 1] then raise "too much information"
+      when [:stop_time, :period]           then solve_n_steps(options)
+      when [:stop_time,          :n_steps] then solve_period(options)
+      when [            :period, :n_steps] then solve_stop_time(options)
+      when [:stop_time, :period, :n_steps] then raise "too much information"
       else raise "not enough information"
       end
     end
