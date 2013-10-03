@@ -130,6 +130,7 @@ when :tick
     step = timeseries.at(index)
     options[:time] = formatter.call(step)
     print printformat % options
+    index += 1
   end
 when :series_tick
   timeseries.each do |step|
