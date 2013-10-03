@@ -26,18 +26,36 @@ class Timeseries
         options[:period] = Period.coerce(period)
       end
 
-      keys = [:start_time, :stop_time, :period, :n_steps]
-      signature = options.fetch(:signature) do
-        keys.map do |key|
-          options[key].present? ? key : nil
-        end
-      end
-      signature = keys & signature
+      available_keys = options.keys.select {|key| options[key].present? }
+      available_keys = signature_keys & available_keys
+      signature = options.fetch(:signature) { signature_keys & available_keys }
+      signature = signature_keys & signature
 
+      signature = normalize_signature(signature, available_keys)
+      solver(signature, available_keys).call(options)
+    end
+
+    def signature_keys
+      [:start_time, :stop_time, :period, :n_steps]
+    end
+
+    def normalize_signature(signature, available_keys)
+      # the goal here is to add to the signature available keys, in order, up
+      # to the solvable level of 3.  this allows a partial signature to be
+      # provided that will use default values in options, if available.
+      if signature.length < 3
+        prioritized_keys = (signature_keys - signature) & available_keys
+        signature_keys & signature.concat(prioritized_keys)[0, 3]
+      else
+        signature
+      end
+    end
+
+    def solver(signature, available_keys = [])
       case signature
-      when [:start_time, :stop_time, :period          ] then solve_n_steps(options)
-      when [:start_time, :stop_time,          :n_steps] then solve_period(options)
-      when [:start_time,             :period, :n_steps] then solve_stop_time(options)
+      when [:start_time, :stop_time, :period          ] then method(:solve_n_steps)
+      when [:start_time, :stop_time,          :n_steps] then method(:solve_period)
+      when [:start_time,             :period, :n_steps] then method(:solve_stop_time)
       when [             :stop_time, :period, :n_steps] then raise "unable to solve stop_time,period,n_steps"
       when [:start_time, :stop_time, :period, :n_steps] then raise "too much information"
       else raise "not enough information"

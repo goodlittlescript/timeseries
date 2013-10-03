@@ -113,6 +113,10 @@ class TimeseriesTest < Test::Unit::TestCase
     assert options[:stop_time].kind_of?(ActiveSupport::TimeWithZone)
   end
 
+  #
+  # Timeseries.normalize
+  # with signatures
+
   def test_normalize_uses_signature_as_specified
     options = Timeseries.normalize(
       :start_time => Time.zone.parse("2010-01-01 00:00:00"),
@@ -122,6 +126,25 @@ class TimeseriesTest < Test::Unit::TestCase
       :signature  => [:start_time, :stop_time, :period]
     )
     assert_equal(5, options[:n_steps])
+  end
+
+  def test_normalize_fills_out_signature_in_signature_key_order
+    options = Timeseries.normalize(
+      :start_time => Time.zone.parse("2010-01-01 00:00:00"),
+      :stop_time  => Time.zone.parse("2010-01-01 01:00:00"),
+      :period     => {:minutes => 15},
+      :n_steps    => 100,
+      :signature  => [:start_time]
+    )
+    assert_equal(5, options[:n_steps])
+
+    options = Timeseries.normalize(
+      :start_time => Time.zone.parse("2010-01-01 00:00:00"),
+      :period     => {:minutes => 15},
+      :n_steps    => 100,
+      :signature  => [:start_time]
+    )
+    assert_equal(100, options[:n_steps])
   end
 
   #

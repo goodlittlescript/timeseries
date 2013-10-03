@@ -40,7 +40,7 @@ b $(date -u +'%Y-%m-%d')
 
 test_timeseries_tick_ignores_series_end () {
 printf "%s %%{time}\n" a b c d e |
-timeseries -f '%Y-%m-%d' -k -n 3 -p 1s | assert_output "\
+timeseries -f '%Y-%m-%d' -k -n 3 | assert_output "\
 a $(date -u +'%Y-%m-%d')
 b $(date -u +'%Y-%m-%d')
 c $(date -u +'%Y-%m-%d')
@@ -70,7 +70,7 @@ c $(date -u +'%Y-%m-%d')
 
 test_timeseries_series_tick_stops_according_to_series () {
 printf "%s %%{time}\n" a b c d e |
-timeseries -f '%Y-%m-%d' -K -n 3 -p 1s | assert_output "\
+timeseries -f '%Y-%m-%d' -K -n 3 | assert_output "\
 a $(date -u +'%Y-%m-%d')
 b $(date -u +'%Y-%m-%d')
 c $(date -u +'%Y-%m-%d')
@@ -96,6 +96,18 @@ timeseries --help | grep -q 'usage: timeseries'
 test_timeseries_i_prints_iso8601_with_precision () {
 timeseries -i 6 | sed -e "s/[[:digit:]]/_/g" | assert_output "\
 ____-__-__T__:__:__.______Z
+"
+}
+
+#
+# -n
+#
+
+test_timeseries_n_assumes_period () {
+timeseries -f '%Y-%m-%d' -n 3 | assert_output "\
+$(date -u +'%Y-%m-%d')
+$(date -u +'%Y-%m-%d')
+$(date -u +'%Y-%m-%d')
 "
 }
 
