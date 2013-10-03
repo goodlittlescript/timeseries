@@ -11,7 +11,8 @@ options = {
   :format => 0,
   :signature => [],
   :snap_start_time => :next,
-  :snap_stop_time => :previous
+  :snap_stop_time => :previous,
+  :unbuffer => false
 }
 
 OptionParser.new do |opts|
@@ -76,6 +77,10 @@ options:
     options[:signature] << :stop_time
   end
 
+  opts.on("-u", "--[no-]unbuffer", "unbuffer output (#{options[:zone]})") do |value|
+    options[:unbuffer] = value
+  end
+
   opts.on("-z", "--zone ZONE", "timezone (#{options[:zone]})") do |zone|
     options[:zone] = zone
   end
@@ -111,6 +116,10 @@ if format.kind_of?(Integer)
   formatter = lambda {|time| time.iso8601(format) }
 else
   formatter = lambda {|time| time.strftime(format) }
+end
+
+if options[:unbuffer]
+  $stdout.sync = true
 end
 
 timeseries = Timeseries.create(options)
