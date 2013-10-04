@@ -18,6 +18,13 @@ b $(date -u +'%Y-%m-%d')
 "
 }
 
+test_timeseries_makes_index_available () {
+timeseries -n 2 "%{index}" | assert_output "\
+0
+1
+"
+}
+
 test_timeseries_rounds_inner_by_default () {
 timeseries -s "10:03" -t "10:16" -p 5m -f '%H:%M:%S' | assert_output "\
 10:05:00

@@ -118,8 +118,9 @@ when :stream
     printformats << "%{time}"
   end
 
-  timeseries.each do |step|
-    options[:time] = formatter.call(step)
+  timeseries.each_with_index do |step, index|
+    options[:index] = index
+    options[:time]  = formatter.call(step)
     printformats.each do |printformats|
       puts printformats % options
     end
@@ -128,14 +129,16 @@ when :tick
   index = 0
   while printformat = ARGF.gets
     step = timeseries.at(index)
-    options[:time] = formatter.call(step)
+    options[:index] = index
+    options[:time]  = formatter.call(step)
     print printformat % options
     index += 1
   end
 when :series_tick
-  timeseries.each do |step|
+  timeseries.each_with_index do |step, index|
     if printformat = ARGF.gets
-      options[:time] = formatter.call(step)
+      options[:index] = index
+      options[:time]  = formatter.call(step)
       print printformat % options
     else
       break
