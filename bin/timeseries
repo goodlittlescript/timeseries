@@ -80,6 +80,10 @@ options:
     options[:mode] = :realtime
   end
 
+  opts.on("-R", "--series-realtime", "realtime, limited by series") do |code|
+    options[:mode] = :series_realtime
+  end
+
   opts.on("-s", "--start START_TIME", "start time (now)") do |start_time|
     options[:start_time] = start_time
     options[:signature] << :start_time
@@ -149,6 +153,28 @@ when :series_tick
     end
   end
 when :realtime
+  printformats = ARGV.dup; ARGV.clear
+  if printformats.empty?
+    printformats << "%{time}"
+  end
+
+  index = 0
+  step  = timeseries.at(index)
+  loop do
+    options[:index] = index
+    options[:time]  = formatter.call(step)
+
+    index += 1
+    next_step = timeseries.at(index)
+
+    printformats.each do |printformats|
+      puts printformats % options
+    end
+
+    sleep(next_step - step)
+    step = next_step
+  end
+when :series_realtime
   printformats = ARGV.dup; ARGV.clear
   if printformats.empty?
     printformats << "%{time}"
