@@ -76,12 +76,14 @@ options:
     options[:signature] << :period
   end
 
-  opts.on("-r", "--realtime", "print in realtime") do |code|
+  opts.on("-r", "--realtime", "print in realtime (assumes -u)") do |code|
     options[:mode] = :realtime
+    options[:unbuffer] = true
   end
 
   opts.on("-R", "--series-realtime", "realtime, limited by series") do |code|
     options[:mode] = :series_realtime
+    options[:unbuffer] = true
   end
 
   opts.on("-s", "--start START_TIME", "start time (now)") do |start_time|
