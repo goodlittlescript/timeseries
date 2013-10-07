@@ -76,7 +76,9 @@ options:
     options[:signature] << :period
   end
 
-
+  opts.on("-r", "--realtime", "print in realtime") do |code|
+    options[:mode] = :realtime
+  end
 
   opts.on("-s", "--start START_TIME", "start time (now)") do |start_time|
     options[:start_time] = start_time
@@ -145,6 +147,31 @@ when :series_tick
     else
       break
     end
+  end
+when :realtime
+  printformats = ARGV.dup; ARGV.clear
+  if printformats.empty?
+    printformats << "%{time}"
+  end
+
+  step = nil
+  timeseries.each_with_index do |next_step, next_index|
+    if step
+      options[:index] = next_index - 1
+      options[:time]  = formatter.call(step)
+      printformats.each do |printformats|
+        puts printformats % options
+      end
+      sleep(next_step - step)
+    end
+
+    step = next_step
+  end
+
+  options[:index] = timeseries.n_steps - 1
+  options[:time]  = formatter.call(step)
+  printformats.each do |printformats|
+    puts printformats % options
   end
 end
 
