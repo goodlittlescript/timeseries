@@ -136,7 +136,7 @@ when :stream
     end
   end
 when :tick
-  index = 0
+  index = timeseries.offset
   while printformat = ARGF.gets
     step = timeseries.at(index)
     options[:index] = index
@@ -160,7 +160,7 @@ when :realtime
     printformats << "%{time}"
   end
 
-  index = 0
+  index = timeseries.offset
   step  = timeseries.at(index)
   loop do
     options[:index] = index
