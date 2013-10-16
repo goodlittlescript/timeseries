@@ -28,6 +28,11 @@ class TimeseriesTest < Test::Unit::TestCase
     assert_equal(10, timeseries.n_steps)
   end
 
+  def test_create_interprets_string_as_period
+    timeseries = Timeseries.create("10s")
+    assert_equal({:seconds => 10}, timeseries.period.data)
+  end
+
   #
   # Timeseries.normalize
   # 2 data points

@@ -4,7 +4,7 @@ require "timeseries/utils"
 class Timeseries
   class << self
     def normalize(options)
-      options = symbolize(options)
+      options = coerce_to_options(options)
 
       if start_time = options[:start_time]
         options[:start_time] = Utils.coerce(start_time)
@@ -81,6 +81,14 @@ class Timeseries
     end
 
     private
+
+    def coerce_to_options(obj)
+      case obj
+      when Hash   then symbolize(obj)
+      when String then {:period => obj}
+      else raise "cannot coerce to options: #{obj.inspect}"
+      end
+    end
 
     def symbolize(hash)
       result = {}
