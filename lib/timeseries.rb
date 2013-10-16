@@ -76,12 +76,29 @@ class Timeseries
       new normalize(options)
     end
 
+    def default_start_time
+      Time.zone.now
+    end
+
+    def default_period
+      Period.new(:seconds => 1)
+    end
+
+    def default_n_steps
+      nil
+    end
+
+    def default_offset
+      0
+    end
+
     private
 
     def set_defaults(options)
-      options[:start_time] ||= Time.zone.now
-      options[:period]     ||= Period.new(:seconds => 1)
-      options[:n_steps]    ||= nil
+      options[:start_time] ||= default_start_time
+      options[:period]     ||= default_period
+      options[:n_steps]    ||= default_n_steps
+      options[:offset]     ||= default_offset
       options
     end
 
@@ -120,10 +137,10 @@ class Timeseries
 
   # http://www.timeanddate.com/library/abbreviations/timezones/
   def initialize(options = {})
-    @start_time = options.fetch(:start_time) { Time.zone.now }
-    @n_steps    = options.fetch(:n_steps, nil)
-    @period     = options.fetch(:period, {})
-    @offset     = options.fetch(:offset, 0)
+    @start_time = options.fetch(:start_time) { self.class.default_start_time }
+    @n_steps    = options.fetch(:n_steps)    { self.class.default_n_steps }
+    @period     = options.fetch(:period)     { self.class.default_period }
+    @offset     = options.fetch(:offset)     { self.class.default_offset }
 
     unless @start_time.kind_of?(ActiveSupport::TimeWithZone)
       raise "invalid start_time: #{@start_time.inspect} (must be a TimeWithZone)"
