@@ -72,7 +72,7 @@ class Timeseries
       end or raise "unable to solve #{signature.join(',')}"
     end
 
-    def create(options)
+    def create(options = {})
       new normalize(options)
     end
 

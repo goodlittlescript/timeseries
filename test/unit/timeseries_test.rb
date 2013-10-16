@@ -13,6 +13,16 @@ class TimeseriesTest < Test::Unit::TestCase
   end
 
   #
+  # Timeseries.create
+  #
+
+  def test_create_creates_1s_unbounded_timeseries
+    timeseries = Timeseries.create
+    assert_equal({:seconds => 1}, timeseries.period.data)
+    assert_equal(nil, timeseries.n_steps)
+  end
+
+  #
   # Timeseries.normalize
   # 2 data points
 
