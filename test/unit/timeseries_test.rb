@@ -14,6 +14,36 @@ class TimeseriesTest < Test::Unit::TestCase
 
   #
   # Timeseries.normalize
+  # 2 data points
+
+  def test_normalize_with_start_time_assumes_period_1s_and_nil_n_steps
+    options = Timeseries.normalize(
+      :start_time => Time.zone.parse("2010-01-01 00:23:00")
+    )
+    assert_equal({:seconds => 1}, options[:period].data)
+    assert_equal(nil, options[:n_steps])
+  end
+
+  def test_normalize_with_start_time_and_period_assumes_nil_n_steps
+    options = Timeseries.normalize(
+      :start_time => Time.zone.parse("2010-01-01 00:23:00"),
+      :period     => {:minutes => 15},
+    )
+    assert_equal({:minutes => 15}, options[:period].data)
+    assert_equal(nil, options[:n_steps])
+  end
+
+  def test_normalize_with_start_time_and_n_steps_assumes_period_1s
+    options = Timeseries.normalize(
+      :start_time => Time.zone.parse("2010-01-01 00:23:00"),
+      :n_steps    => 10
+    )
+    assert_equal({:seconds => 1}, options[:period].data)
+    assert_equal(10, options[:n_steps])
+  end
+
+  #
+  # Timeseries.normalize
   # start,period,n_steps
 
   def test_normalize_with_start_period_n_steps_snaps_start_time_to_previous_if_specified

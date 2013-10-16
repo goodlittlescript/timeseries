@@ -53,13 +53,23 @@ class Timeseries
 
     def solver(signature, available_keys = [])
       case signature
+      when [                                          ] then method(:solve_stop_time)
+      when [:start_time                               ] then method(:solve_stop_time)
+      when [             :stop_time                   ] then
+      when [                         :period          ] then method(:solve_stop_time)
+      when [                                  :n_steps] then method(:solve_stop_time)
+      when [:start_time, :stop_time,                  ] then method(:solve_n_steps)
+      when [:start_time,             :period          ] then method(:solve_stop_time)
+      when [:start_time,                      :n_steps] then method(:solve_stop_time)
+      when [             :stop_time, :period          ] then
+      when [             :stop_time,          :n_steps] then
+      when [                         :period, :n_steps] then method(:solve_stop_time)
       when [:start_time, :stop_time, :period          ] then method(:solve_n_steps)
-      when [:start_time, :stop_time,          :n_steps] then method(:solve_period)
+      when [:start_time, :stop_time,          :n_steps] then
       when [:start_time,             :period, :n_steps] then method(:solve_stop_time)
-      when [             :stop_time, :period, :n_steps] then raise "unable to solve stop_time,period,n_steps"
+      when [             :stop_time, :period, :n_steps] then
       when [:start_time, :stop_time, :period, :n_steps] then raise "too much information"
-      else raise "not enough information"
-      end
+      end or raise "unable to solve #{signature.join(',')}"
     end
 
     def create(options)
@@ -68,18 +78,23 @@ class Timeseries
 
     private
 
+    def set_defaults(options)
+      options[:start_time] ||= Time.zone.now
+      options[:period]     ||= Period.new(:seconds => 1)
+      options[:n_steps]    ||= nil
+      options
+    end
+
     def solve_n_steps(options)
+      options = set_defaults(options)
       options[:start_time] = snap_time(*options.values_at(:period, :start_time, :snap_start_time))
       options[:stop_time]  = snap_time(*options.values_at(:period, :stop_time,  :snap_stop_time))
       options[:n_steps]    = n_steps(options)
       options
     end
 
-    def solve_period(options)
-      raise NotImplementedError
-    end
-
     def solve_stop_time(options)
+      options = set_defaults(options)
       options[:start_time] = snap_time(*options.values_at(:period, :start_time, :snap_start_time))
       options
     end
@@ -105,7 +120,7 @@ class Timeseries
 
   # http://www.timeanddate.com/library/abbreviations/timezones/
   def initialize(options = {})
-    @start_time = options.fetch(:start_time, Time.zone.now)
+    @start_time = options.fetch(:start_time) { Time.zone.now }
     @n_steps    = options.fetch(:n_steps, nil)
     @period     = options.fetch(:period, {})
     @offset     = options.fetch(:offset, 0)
