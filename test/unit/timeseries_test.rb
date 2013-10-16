@@ -72,7 +72,7 @@ class TimeseriesTest < Test::Unit::TestCase
     assert_equal("2010-01-01 00:15:00", options[:start_time].strftime("%Y-%m-%d %H:%M:%S"))
   end
 
-  def test_normalize_with_start_period_n_steps__snaps_start_time_to_next_if_specified
+  def test_normalize_with_start_period_n_steps_snaps_start_time_to_next_if_specified
     options = Timeseries.normalize(
       :start_time => Time.zone.parse("2010-01-01 00:23:00"),
       :period     => {:minutes => 15},
@@ -317,7 +317,7 @@ class TimeseriesTest < Test::Unit::TestCase
     "1week"   => ["2010-03-07 02:00:00 MST", "2010-03-14 03:00:00 MDT", "2010-03-21 02:00:00 MDT"],
     "1mon"    => ["2010-02-14 02:00:00 MST", "2010-03-14 03:00:00 MDT", "2010-04-14 02:00:00 MDT"],
     "1year"   => ["2009-03-14 02:00:00 MDT", "2010-03-14 03:00:00 MDT", "2011-03-14 02:00:00 MDT"],
-    
+
     "2day1h"  => ["2010-03-12 01:00:00 MST", "2010-03-14 03:00:00 MDT", "2010-03-16 03:00:00 MDT"],
     "-2day1h" => ["2010-03-16 01:00:00 MDT", "2010-03-14 03:00:00 MDT", "2010-03-12 03:00:00 MST"],
   }
@@ -437,7 +437,7 @@ class TimeseriesTest < Test::Unit::TestCase
     stop_time = Time.zone.parse("2010-01-01 00:00:05")
     assert_equal 3, series.n_steps_to(stop_time)
   end
-  
+
   def test_n_steps_to_returns_1_for_equal_start_stop_times
     series = Timeseries.new(
       :start_time => Time.zone.parse("2010-01-01 00:00:00"),
@@ -446,7 +446,7 @@ class TimeseriesTest < Test::Unit::TestCase
     stop_time = Time.zone.parse("2010-01-01 00:00:00")
     assert_equal 1, series.n_steps_to(stop_time)
   end
-  
+
   def test_n_steps_to_returns_1_for_equal_start_stop_times_and_negative_period
     series = Timeseries.new(
       :start_time => Time.zone.parse("2010-01-01 00:00:00"),
@@ -455,7 +455,7 @@ class TimeseriesTest < Test::Unit::TestCase
     stop_time = Time.zone.parse("2010-01-01 00:00:00")
     assert_equal 1, series.n_steps_to(stop_time)
   end
-  
+
   def test_n_steps_to_returns_0_for_start_time_equal_stop_time_and_empty_period
     series = Timeseries.new(
       :start_time => Time.zone.parse("2010-01-01 00:00:00"),
@@ -493,7 +493,7 @@ class TimeseriesTest < Test::Unit::TestCase
     err = assert_raises(RuntimeError) { series.n_steps_to(stop_time) }
     assert_equal "empty period", err.message
   end
-  
+
   def test_n_steps_to_raises_error_for_start_time_not_equal_stop_time_and_logically_empty_period
     series = Timeseries.new(
       :start_time => Time.zone.parse("2010-01-01 00:00:00"),
