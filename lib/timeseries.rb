@@ -32,7 +32,7 @@ class Timeseries
       signature = signature_keys & signature
 
       signature = normalize_signature(signature, available_keys)
-      solver(signature, available_keys).call(options)
+      solver(signature).call(options)
     end
 
     def signature_keys
@@ -51,7 +51,7 @@ class Timeseries
       end
     end
 
-    def solver(signature, available_keys = [])
+    def solver(signature)
       case signature
       when [                                          ] then method(:solve_stop_time)
       when [:start_time                               ] then method(:solve_stop_time)
