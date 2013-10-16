@@ -14,6 +14,8 @@ class Timeseries
     end
 
     def normalize(options)
+      options = symbolize(options)
+
       if start_time = options[:start_time]
         options[:start_time] = Utils.coerce(start_time)
       end
@@ -27,16 +29,12 @@ class Timeseries
       end
 
       available_keys = options.keys.select {|key| options[key].present? }
-      available_keys = signature_keys & available_keys
-      signature = options.fetch(:signature) { signature_keys & available_keys }
-      signature = signature_keys & signature
+      available_keys = SIGNATURE_KEYS & available_keys
+      signature = options.fetch(:signature) { SIGNATURE_KEYS & available_keys }
+      signature = SIGNATURE_KEYS & signature
 
       signature = normalize_signature(signature, available_keys)
       solver(signature).call(options)
-    end
-
-    def signature_keys
-      [:start_time, :stop_time, :period, :n_steps]
     end
 
     def normalize_signature(signature, available_keys)
@@ -44,8 +42,8 @@ class Timeseries
       # to the solvable level of 3.  this allows a partial signature to be
       # provided that will use default values in options, if available.
       if signature.length < 3
-        prioritized_keys = (signature_keys - signature) & available_keys
-        signature_keys & signature.concat(prioritized_keys)[0, 3]
+        prioritized_keys = (SIGNATURE_KEYS - signature) & available_keys
+        SIGNATURE_KEYS & signature.concat(prioritized_keys)[0, 3]
       else
         signature
       end
@@ -94,6 +92,15 @@ class Timeseries
 
     private
 
+    def symbolize(hash)
+      result = {}
+      CREATE_KEYS.each do |key|
+        value = hash[key] || hash[key.to_s]
+        result[key] = value if value
+      end
+      result
+    end
+
     def set_defaults(options)
       options[:start_time] ||= default_start_time
       options[:period]     ||= default_period
@@ -127,6 +134,9 @@ class Timeseries
       end
     end
   end
+
+  SIGNATURE_KEYS = [:start_time, :stop_time, :period, :n_steps]
+  CREATE_KEYS = SIGNATURE_KEYS + [:snap_start_time, :snap_stop_time, :offset, :signature]
 
   include Enumerable
 

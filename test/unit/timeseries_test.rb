@@ -22,6 +22,12 @@ class TimeseriesTest < Test::Unit::TestCase
     assert_equal(nil, timeseries.n_steps)
   end
 
+  def test_create_uses_strings_or_symbols
+    timeseries = Timeseries.create('n_steps' => 10, :period => {'seconds' => 10})
+    assert_equal({:seconds => 10}, timeseries.period.data)
+    assert_equal(10, timeseries.n_steps)
+  end
+
   #
   # Timeseries.normalize
   # 2 data points

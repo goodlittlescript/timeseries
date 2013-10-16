@@ -7,7 +7,7 @@ class Timeseries
       def coerce(obj)
         case obj
         when Period  then obj
-        when Hash    then new(obj)
+        when Hash    then new(symbolize(obj))
         when String  then parse(obj)
         when Numeric then new(:seconds => obj)
         when *PERIOD_TYPES.keys then new(obj => 1)
@@ -50,6 +50,17 @@ class Timeseries
         end
 
         new data
+      end
+
+      private
+
+      def symbolize(hash)
+        result = {}
+        PERIOD_TYPES.each_key do |key|
+          value = hash[key] || hash[key.to_s]
+          result[key] = value if value
+        end
+        result
       end
     end
 
