@@ -62,6 +62,18 @@ options:
     options[:mode] = :series_tick
   end
 
+  opts.on("-l", "--throttle PERIOD", "print with throttle (assumes -u)") do |value|
+    options[:mode] = :throttle
+    options[:throttle_period] = Timeseries::Period.coerce(value)
+    options[:unbuffer] = true
+  end
+
+  opts.on("-L", "--series-throttle PERIOD", "throttle, limited by series") do |value|
+    options[:mode] = :series_throttle
+    options[:throttle_period] = Timeseries::Period.coerce(value)
+    options[:unbuffer] = true
+  end
+
   opts.on("-n", "--n-steps N", "number of steps (#{options[:n_steps]})") do |n_steps|
     options[:n_steps] = n_steps.to_i
     options[:signature] << :n_steps
@@ -153,6 +165,44 @@ when :series_tick
     else
       break
     end
+  end
+when :throttle
+  period = options[:throttle_period]
+  current_time = Time.zone.now
+  printformats = ARGV.dup; ARGV.clear
+  if printformats.empty?
+    printformats << "%{time}"
+  end
+  index = timeseries.offset
+  loop do
+    step = timeseries.at(index)
+    options[:index] = index
+    options[:time]  = formatter.call(step)
+    printformats.each do |printformats|
+      puts printformats % options
+    end
+    index += 1
+    next_time = current_time.advance(period.data)
+    sleep(next_time - current_time)
+    current_time = next_time
+  end
+when :series_throttle
+  period = options[:throttle_period]
+  current_time = Time.zone.now
+  printformats = ARGV.dup; ARGV.clear
+  if printformats.empty?
+    printformats << "%{time}"
+  end
+  index = timeseries.offset
+  timeseries.each_with_index do |step, index|
+    options[:index] = index
+    options[:time]  = formatter.call(step)
+    printformats.each do |printformats|
+      puts printformats % options
+    end
+    next_time = current_time.advance(period.data)
+    sleep(next_time - current_time)
+    current_time = next_time
   end
 when :realtime
   printformats = ARGV.dup; ARGV.clear
