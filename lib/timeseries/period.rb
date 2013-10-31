@@ -32,6 +32,10 @@ class Timeseries
       #   Timeseries.parse("1sec2weeks").data  # => {:seconds => 1, :weeks => 2}
       #
       def parse(str)
+        if str =~ /^\d+(\.\d+)?$/
+          str = "#{str}s"
+        end
+
         data = {}
         scanner = StringScanner.new(str)
 

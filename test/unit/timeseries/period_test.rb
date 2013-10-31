@@ -103,6 +103,11 @@ class PeriodTest < Test::Unit::TestCase
     assert_equal(expected, Period.parse("1sec2weeks").data)
   end
 
+  def test_parse_treats_bare_number_as_seconds
+    expected = {:seconds => 1}
+    assert_equal(expected, Period.parse("1").data)
+  end
+
   def test_parse_raises_error_for_invalid_period_string
     err = assert_raises(RuntimeError) { Period.parse("invalid") }
     assert_equal 'invalid period string: "invalid"', err.message
