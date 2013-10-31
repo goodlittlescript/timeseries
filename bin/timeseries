@@ -121,11 +121,7 @@ Time.zone = options[:zone]
 options[:start_time] ||= Time.zone.now
 
 format = options[:format]
-if format.kind_of?(Integer)
-  formatter = lambda {|time| time.iso8601(format) }
-else
-  formatter = lambda {|time| time.strftime(format) }
-end
+formatter = Timeseries::Utils.time_formatter(format)
 
 if options[:unbuffer]
   $stdout.sync = true

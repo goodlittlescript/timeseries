@@ -14,5 +14,13 @@ class Timeseries
         end
       end
     end
+
+    def time_formatter(format)
+      if format.kind_of?(Integer)
+        lambda {|time| time.iso8601(format) }
+      else
+        lambda {|time| time.strftime(format) }
+      end
+    end
   end
 end
