@@ -34,6 +34,25 @@ timeseries -s "10:03" -t "10:16" -p 5m -f '%H:%M:%S' | assert_output "\
 }
 
 #
+# -c
+#
+
+test_timeseries_c_reads_options_from_config_file () {
+mkdir -p "$ts_test_dir"
+config_file="$ts_test_dir/config"
+cat > "$config_file" <<DOC
+start_time 2010-01-01T00:00:10Z
+period 10s
+DOC
+
+timeseries -c "$config_file" -n 3 -i | assert_output "\
+2010-01-01T00:00:10Z
+2010-01-01T00:00:20Z
+2010-01-01T00:00:30Z
+"
+}
+
+#
 # -k
 #
 

@@ -36,6 +36,13 @@ options:
     end
   end
 
+  opts.on("-c", "--config-file FILE", "load settings from config file") do |config_file|
+    Timeseries::Utils.load_options(config_file, options).each do |option, value|
+      options[option] = value
+      options[:signature] << option
+    end
+  end
+
   opts.on("-d", "--debug", "debug mode") do
     $DEBUG = true
   end
