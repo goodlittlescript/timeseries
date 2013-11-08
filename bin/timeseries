@@ -36,11 +36,15 @@ options:
     end
   end
 
-  opts.on("-c", "--config-file FILE", "load settings from config file") do |config_file|
-    Timeseries::Utils.load_options(config_file, options).each do |option, value|
-      options[option] = value
-      options[:signature] << option
+  opts.on("-c", "--continue FILE", "continue from start_time in file") do |continue_file|
+    if File.exists?(continue_file)
+      options[:start_time] = File.read(continue_file).strip
+      options[:signature] << :start_time
+      options[:snap_start_time] = nil
+      options[:snap_stop_time] = nil
+      options[:offset] = 1
     end
+    options[:continue_file] = continue_file
   end
 
   opts.on("-d", "--debug", "debug mode") do
@@ -135,6 +139,15 @@ if options[:unbuffer]
 end
 
 timeseries = Timeseries.create(options)
+
+if continue_file = options[:continue_file]
+  at_exit do
+    File.open(continue_file, "w") do |io|
+      index = options[:index] || 0
+      io << timeseries.at(index + timeseries.offset).iso8601(6)
+    end
+  end
+end
 
 case mode = options[:mode]
 when :stream
