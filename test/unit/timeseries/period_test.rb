@@ -114,6 +114,15 @@ class PeriodTest < Test::Unit::TestCase
   end
 
   #
+  # Period.format
+  #
+
+  def test_format_formats_period_as_period_string
+    period = Period.new(:seconds => 1, :weeks => 2)
+    assert_equal("1s2w", Period.format(period))
+  end
+
+  #
   # reverse tests
   #
 

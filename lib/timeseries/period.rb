@@ -56,6 +56,18 @@ class Timeseries
         new data
       end
 
+      # Formats a period into a period string.
+      def format(period)
+        data = period.data
+        fragments = []
+        (PERIOD_TYPES.keys & data.keys).each do |key|
+          value = data[key]
+          type  = PERIOD_TYPES[key].first
+          fragments << "#{value}#{type}"
+        end
+        fragments.join
+      end
+
       private
 
       def symbolize(hash)
@@ -148,6 +160,10 @@ class Timeseries
     def snap_next(time)
       grid_time = snap_previous(time)
       grid_time == time ? grid_time : grid_time.advance(data)
+    end
+
+    def to_s
+      Period.format(self)
     end
   end
 end
