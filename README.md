@@ -88,8 +88,15 @@ To collate interval-ending intervals from data corresponding to each step:
 
 Leap seconds are not supported.
 
-## Installation
+## Development
 
-Timeseries is available as a gem:
+Setup:
 
-    $ gem install timeseries
+   bundle install
+   git submodule init
+   git submodule update
+
+Tests:
+
+   ./test/suite
+
