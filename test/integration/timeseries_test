@@ -165,4 +165,12 @@ timeseries -p 2s -x "%s" | assert_output "\
 "
 }
 
+test_timeseries_x_creates_error_for_out_of_order_times () {
+printf "%s\n" 1 2 2 3 1 | timeseries -p 2s -x "%s" 2>&1 | sort | assert_output "\
+1970-01-01T00:00:01Z
+1970-01-01T00:00:03Z
+input times out of order (got \"3\" then \"1\")
+"
+}
+
 . ts
