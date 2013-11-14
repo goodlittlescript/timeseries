@@ -137,4 +137,32 @@ $(date -u +'%Y-%m-%d')
 "
 }
 
+#
+# -x
+#
+
+test_timeseries_x_transforms_input_times_according_to_period () {
+timeseries -p 5s -n 3 -s "2010-01-01T00:00:00Z" |
+timeseries -p 2s -x | assert_output "\
+2010-01-01T00:00:00Z
+2010-01-01T00:00:02Z
+2010-01-01T00:00:04Z
+2010-01-01T00:00:06Z
+2010-01-01T00:00:08Z
+2010-01-01T00:00:10Z
+"
+}
+
+test_timeseries_x_parses_input_times_according_to_format () {
+timeseries -p 5s -n 3 -s "2010-01-01T00:00:00Z" -f "%s" |
+timeseries -p 2s -x "%s" | assert_output "\
+2010-01-01T00:00:00Z
+2010-01-01T00:00:02Z
+2010-01-01T00:00:04Z
+2010-01-01T00:00:06Z
+2010-01-01T00:00:08Z
+2010-01-01T00:00:10Z
+"
+}
+
 . ts

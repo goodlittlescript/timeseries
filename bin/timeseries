@@ -123,6 +123,11 @@ options:
     options[:unbuffer] = value
   end
 
+  opts.on("-x", "--transform [INPUT_TIME_FORMAT]", "transform input times to a timeseries") do |input_time_format|
+    options[:mode] = :transform
+    options[:input_format] = input_time_format
+  end
+
   opts.on("-z", "--zone ZONE", "timezone (#{options[:zone]})") do |zone|
     options[:zone] = zone
   end
@@ -266,6 +271,29 @@ when :series_realtime
   options[:time]  = formatter.call(step)
   printformats.each do |printformats|
     puts printformats % options
+  end
+when :transform
+  printformats = ARGV.dup; ARGV.clear
+  if printformats.empty?
+    printformats << "%{time}"
+  end
+
+  parser = Timeseries::Utils.time_parser(options[:input_format])
+  period_hash, index, step = timeseries.period.data, 0, nil
+  while line = gets
+    time = parser.call line.strip
+    if step.nil?
+      step = time
+    end
+    while step <= time
+      options[:index] = index
+      options[:time]  = formatter.call(step)
+      printformats.each do |printformats|
+        puts printformats % options
+      end
+      index += 1
+      step = step.advance(period_hash)
+    end
   end
 end
 

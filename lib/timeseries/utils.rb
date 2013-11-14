@@ -23,11 +23,11 @@ class Timeseries
         # as of this date using %3N (for example) raises an invalid strptime
         # format but the default should be fine in all cases as it represents
         # the max available
-        lambda {|str| Time.strptime(str, "%Y-%m-%dT%H:%M:%S.%N%z") }
+        lambda {|str| Time.strptime(str, "%Y-%m-%dT%H:%M:%S.%N%z").in_time_zone(Time.zone) }
       when nil
         lambda {|str| Time.zone.parse(str) }
       else
-        lambda {|str| Time.strptime(str, format) }
+        lambda {|str| Time.strptime(str, format).in_time_zone(Time.zone) }
       end
     end
 
