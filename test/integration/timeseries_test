@@ -53,6 +53,17 @@ timeseries -c "$config_file" -n 3 | assert_output "\
 }
 
 #
+# -g
+#
+
+test_timeseries_g_prints_only_full_ranges () {
+timeseries -s "10:03" -t "10:16" -p 5m -f '%H:%M:%S' -g '%{last_time} %{time}' | assert_output "\
+10:05:00 10:10:00
+10:10:00 10:15:00
+"
+}
+
+#
 # -k
 #
 
