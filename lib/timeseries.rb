@@ -1,8 +1,14 @@
 require "timeseries/period"
 require "timeseries/utils"
 
+# Use factory method `create` to build a new Timeseries, unless you truely know
+# your arguments are complete
 class Timeseries
   class << self
+    def create(options = {})
+      new(normalize(options))
+    end
+
     def normalize(options)
       options = coerce_to_options(options)
 
@@ -58,10 +64,6 @@ class Timeseries
       when [             :stop_time, :period, :n_steps] then
       when [:start_time, :stop_time, :period, :n_steps] then raise "too much information"
       end or raise "unable to solve #{signature.join(',')}"
-    end
-
-    def create(options = {})
-      new normalize(options)
     end
 
     def default_start_time
