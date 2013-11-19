@@ -154,6 +154,12 @@ if continue_file = options[:continue_file]
   end
 end
 
+set_options = lambda do |index, step|
+  options[:last_time] = options[:time]
+  options[:index] = index
+  options[:time]  = formatter.call(step)
+end
+
 case mode = options[:mode]
 when :stream
   printformats = ARGV.dup; ARGV.clear
@@ -162,8 +168,7 @@ when :stream
   end
 
   timeseries.each_with_index do |step, index|
-    options[:index] = index
-    options[:time]  = formatter.call(step)
+    set_options.call(index, step)
     printformats.each do |printformats|
       puts printformats % options
     end
@@ -172,16 +177,14 @@ when :tick
   index = timeseries.offset
   while printformat = ARGF.gets
     step = timeseries.at(index)
-    options[:index] = index
-    options[:time]  = formatter.call(step)
+    set_options.call(index, step)
     print printformat % options
     index += 1
   end
 when :series_tick
   timeseries.each_with_index do |step, index|
     if printformat = ARGF.gets
-      options[:index] = index
-      options[:time]  = formatter.call(step)
+      set_options.call(index, step)
       print printformat % options
     else
       break
@@ -197,8 +200,7 @@ when :throttle
   index = timeseries.offset
   loop do
     step = timeseries.at(index)
-    options[:index] = index
-    options[:time]  = formatter.call(step)
+    set_options.call(index, step)
     printformats.each do |printformats|
       puts printformats % options
     end
@@ -216,8 +218,7 @@ when :series_throttle
   end
   index = timeseries.offset
   timeseries.each_with_index do |step, index|
-    options[:index] = index
-    options[:time]  = formatter.call(step)
+    set_options.call(index, step)
     printformats.each do |printformats|
       puts printformats % options
     end
@@ -234,8 +235,7 @@ when :realtime
   index = timeseries.offset
   step  = timeseries.at(index)
   loop do
-    options[:index] = index
-    options[:time]  = formatter.call(step)
+    set_options.call(index, step)
 
     index += 1
     next_step = timeseries.at(index)
@@ -256,8 +256,7 @@ when :series_realtime
   step = nil
   timeseries.each_with_index do |next_step, next_index|
     if step
-      options[:index] = next_index - 1
-      options[:time]  = formatter.call(step)
+      set_options.call(next_index - 1, step)
       printformats.each do |printformats|
         puts printformats % options
       end
@@ -267,8 +266,7 @@ when :series_realtime
     step = next_step
   end
 
-  options[:index] = timeseries.n_steps - 1
-  options[:time]  = formatter.call(step)
+  set_options.call(timeseries.n_step - 1, step)
   printformats.each do |printformats|
     puts printformats % options
   end
@@ -296,8 +294,7 @@ when :transform
     options[:input_time] = line
 
     while step <= time
-      options[:index] = index
-      options[:time]  = formatter.call(step)
+      set_options.call(index, step)
       printformats.each do |printformats|
         puts printformats % options
       end
