@@ -162,6 +162,13 @@ class Timeseries
       grid_time == time ? grid_time : grid_time.advance(data)
     end
 
+    def ref_size
+      data.inject(0) do |size, (period_type, value)|
+        # leverages methods like `1.months`
+        size + value.send(period_type)
+      end
+    end
+
     def to_s
       Period.format(self)
     end

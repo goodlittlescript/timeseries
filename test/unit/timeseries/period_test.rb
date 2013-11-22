@@ -156,6 +156,58 @@ class PeriodTest < Test::Unit::TestCase
     assert_equal({:minutes => 30}, period.data)
   end
 
+  #
+  # ref_size tests
+  #
+
+  def test_ref_size_returns_seconds_in_seconds_period
+    period  = Period.new(:seconds => 1)
+    seconds = 1
+    assert_equal(seconds, period.ref_size)
+  end
+
+  def test_ref_size_assumes_60_seconds_per_minute
+    period  = Period.new(:minutes => 1)
+    seconds = 60
+    assert_equal(seconds, period.ref_size)
+  end
+
+  def test_ref_size_assumes_60_minutes_per_hour
+    period  = Period.new(:hours => 1)
+    seconds = 60 * 60
+    assert_equal(seconds, period.ref_size)
+  end
+
+  def test_ref_size_assumes_24_hours_per_day
+    period  = Period.new(:days => 1)
+    seconds = 24 * 60 * 60
+    assert_equal(seconds, period.ref_size)
+  end
+
+  def test_ref_size_assumes_7_days_per_week
+    period  = Period.new(:weeks => 1)
+    seconds = 7 * 24 * 60 * 60
+    assert_equal(seconds, period.ref_size)
+  end
+
+  def test_ref_size_assumes_30_days_per_month
+    period  = Period.new(:months => 1)
+    seconds = 30 * 24 * 60 * 60
+    assert_equal(seconds, period.ref_size)
+  end
+
+  def test_ref_size_assumes_365_point_25_days_per_year
+    period  = Period.new(:years => 1)
+    seconds = 365.25 * 24 * 60 * 60
+    assert_equal(seconds, period.ref_size)
+  end
+
+  def test_ref_size_sums_over_all_components
+    period  = Period.new(:weeks => 1, :days => 2, :seconds => 2)
+    seconds = (7 * 24 * 60 * 60) + (2 * 24 * 60 * 60) + 2
+    assert_equal(seconds, period.ref_size)
+  end
+
   ###################################################
   # Snap Tests
   ###################################################
