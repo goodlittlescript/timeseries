@@ -292,15 +292,14 @@ when :transform
     printformats << "%{time}"
   end
 
+  transformer = timeseries.transformer(:start_time => nil, :stop_time => nil)
+  index, last_time = 0, nil
   parser = Timeseries::Utils.time_parser(options[:input_format])
-  period_hash, index, step, last_time = timeseries.period.data, 0, nil, nil
   while line = gets
     line.strip!
     time = parser.call line
 
-    if step.nil?
-      step = time
-    elsif time < last_time
+    if last_time && time < last_time
       last_line = options[:input_time]
       raise "input times out of order (got #{last_line.inspect} then #{line.inspect})"
     end
@@ -309,14 +308,13 @@ when :transform
     # to correspond to the formatted 'time'
     options[:input_time] = line
 
-    while step <= time
+    transformer.each_to(time) do |step|
       if set_options.call(index, step)
         printformats.each do |printformats|
           puts printformats % options
         end
       end
       index += 1
-      step = step.advance(period_hash)
     end
 
     last_time = time

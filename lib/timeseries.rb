@@ -1,5 +1,6 @@
 require "timeseries/period"
 require "timeseries/utils"
+require "timeseries/transformer"
 
 # Use factory method `create` to build a new Timeseries, unless you truely know
 # your arguments are complete
@@ -167,6 +168,10 @@ class Timeseries
     start_time.advance(period_hash)
   end
 
+  def stop_time
+    n_steps ? at(offset + n_steps - 1) : nil
+  end
+
   def avg_sec_per_step
     @avg_sec_per_step ||= (at(10) - start_time) / 10
   end
@@ -224,6 +229,12 @@ class Timeseries
         index += 1
       end
     end
+  end
+
+  def transformer(options = {})
+    start_time = options.fetch(:start_time, self.start_time)
+    stop_time = options.fetch(:stop_time, self.stop_time)
+    Transformer.new(period, start_time, stop_time)
   end
 
   def collate(data, options = {}) # :yields: previous, current
