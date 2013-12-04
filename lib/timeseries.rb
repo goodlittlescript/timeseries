@@ -169,7 +169,12 @@ class Timeseries
   end
 
   def stop_time
-    n_steps ? at(offset + n_steps - 1) : nil
+    case
+    when n_steps.nil? then nil
+    when n_steps > 0  then at(offset + n_steps - 1)
+    when n_steps < 0  then at(offset + n_steps + 1)
+    when n_steps == 0 then start_time
+    end
   end
 
   def avg_sec_per_step

@@ -431,7 +431,56 @@ class TimeseriesTest < Test::Unit::TestCase
   end
 
   #
-  # Timeseries.n_steps special cases
+  # stop_time test
+  #
+
+  def test_stop_time_returns_stop_time_as_calculated_by_inputs
+    series = Timeseries.new(
+      :start_time => Time.zone.parse("2010-01-01 00:00:00"),
+      :period     => {:seconds => 2},
+      :n_steps    => 3
+    )
+    assert_equal Time.zone.parse("2010-01-01 00:00:04"), series.stop_time
+    assert_equal series.each.to_a.last, series.stop_time
+  end
+
+  def test_stop_time_works_with_negative_steps
+    series = Timeseries.new(
+      :start_time => Time.zone.parse("2010-01-01 00:00:06"),
+      :period     => {:seconds => 2},
+      :n_steps    => -3
+    )
+    assert_equal Time.zone.parse("2010-01-01 00:00:02"), series.stop_time
+    assert_equal series.each.to_a.last, series.stop_time
+  end
+
+  def test_stop_time_returns_start_time_for_zero_steps
+    series = Timeseries.new(
+      :start_time => Time.zone.parse("2010-01-01 00:00:00"),
+      :period     => {:seconds => 2},
+      :n_steps    => 0
+    )
+    assert_equal Time.zone.parse("2010-01-01 00:00:00"), series.stop_time
+  end
+
+  def test_stop_time_works_with_offset
+    series = Timeseries.new(
+      :start_time => Time.zone.parse("2010-01-01 00:00:00"),
+      :period     => {:seconds => 2},
+      :n_steps    => 3,
+      :offset     => 1
+    )
+    assert_equal Time.zone.parse("2010-01-01 00:00:06"), series.stop_time
+    assert_equal series.each.to_a.last, series.stop_time
+  end
+
+  def test_stop_time_returns_nil_when_n_steps_is_nil
+    series = Timeseries.new :n_steps => nil
+    assert_equal nil, series.stop_time
+  end
+
+  #
+  # n_steps_to special cases
   #
 
   def test_n_steps_to_does_not_count_step_that_exceeds_stop_time
