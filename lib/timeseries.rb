@@ -79,10 +79,6 @@ class Timeseries
       nil
     end
 
-    def default_offset
-      0
-    end
-
     private
 
     def coerce_to_options(obj)
@@ -106,7 +102,6 @@ class Timeseries
       options[:start_time] ||= default_start_time
       options[:period]     ||= default_period
       options[:n_steps]    ||= default_n_steps
-      options[:offset]     ||= default_offset
       options
     end
 
@@ -137,21 +132,19 @@ class Timeseries
   end
 
   SIGNATURE_KEYS = [:start_time, :stop_time, :period, :n_steps]
-  CREATE_KEYS = SIGNATURE_KEYS + [:snap_start_time, :snap_stop_time, :offset, :signature]
+  CREATE_KEYS = SIGNATURE_KEYS + [:snap_start_time, :snap_stop_time, :signature]
 
   include Enumerable
 
   attr_reader :start_time
   attr_reader :n_steps
   attr_reader :period
-  attr_reader :offset
 
   # http://www.timeanddate.com/library/abbreviations/timezones/
   def initialize(options = {})
     @start_time = options.fetch(:start_time) { self.class.default_start_time }
     @n_steps    = options.fetch(:n_steps)    { self.class.default_n_steps }
     @period     = options.fetch(:period)     { self.class.default_period }
-    @offset     = options.fetch(:offset)     { self.class.default_offset }
 
     unless @start_time.kind_of?(ActiveSupport::TimeWithZone)
       raise "invalid start_time: #{@start_time.inspect} (must be a TimeWithZone)"
@@ -171,8 +164,8 @@ class Timeseries
   def stop_time
     case
     when n_steps.nil? then nil
-    when n_steps > 0  then at(offset + n_steps - 1)
-    when n_steps < 0  then at(offset + n_steps + 1)
+    when n_steps > 0  then at(n_steps - 1)
+    when n_steps < 0  then at(n_steps + 1)
     when n_steps == 0 then start_time
     end
   end
@@ -221,7 +214,7 @@ class Timeseries
   def each
     return to_enum(:each) unless block_given?
 
-    index = offset
+    index = 0
     if n_steps
       step_size = n_steps < 0 ? -1 : 1
       n_steps.abs.times do
@@ -240,6 +233,10 @@ class Timeseries
     start_time = options.fetch(:start_time, self.start_time)
     stop_time = options.fetch(:stop_time, self.stop_time)
     Transformer.new(period, start_time, stop_time)
+  end
+
+  def offset(n)
+    self.class.new(:start_time => at(n), :period => period, :n_steps => n_steps)
   end
 
   def collate(data, options = {}) # :yields: previous, current

@@ -5,7 +5,6 @@ require "timeseries"
 
 options = {
   :n_steps => 1,
-  :offset => 0,
   :period => "1s",
   :zone   => "UTC",
   :format => 0,
@@ -37,13 +36,6 @@ options:
   end
 
   opts.on("-c", "--continue FILE", "continue from start_time in file") do |continue_file|
-    if File.exists?(continue_file)
-      options[:start_time] = File.read(continue_file).strip
-      options[:signature] << :start_time
-      options[:snap_start_time] = nil
-      options[:snap_stop_time] = nil
-      options[:offset] = 1
-    end
     options[:continue_file] = continue_file
   end
 
@@ -92,10 +84,6 @@ options:
   opts.on("-n", "--n-steps N", "number of steps (#{options[:n_steps]})") do |n_steps|
     options[:n_steps] = n_steps.to_i
     options[:signature] << :n_steps
-  end
-
-  opts.on("-o", "--offset OFFSET", "offset (#{options[:offset]})") do |offset|
-    options[:offset] = offset.to_i
   end
 
   opts.on("-p", "--period PERIOD", "period (#{options[:period]})") do |period|
@@ -150,10 +138,18 @@ end
 timeseries = Timeseries.create(options)
 
 if continue_file = options[:continue_file]
+  if File.exists?(continue_file)
+    options[:start_time] = File.read(continue_file).strip
+    options[:signature] << :start_time
+    options[:snap_start_time] = nil
+    options[:snap_stop_time] = nil
+    timeseries = Timeseries.create(options).offset(1)
+  end
+
   at_exit do
     File.open(continue_file, "w") do |io|
       index = options[:index] || 0
-      io << timeseries.at(index + timeseries.offset).iso8601(6)
+      io << timeseries.at(index).iso8601(6)
     end
   end
 end
@@ -186,7 +182,7 @@ when :stream
     end
   end
 when :tick
-  index = timeseries.offset
+  index = 0
   while printformat = ARGF.gets
     step = timeseries.at(index)
     if set_options.call(index, step)
@@ -210,7 +206,7 @@ when :throttle
   if printformats.empty?
     printformats << "%{time}"
   end
-  index = timeseries.offset
+  index = 0
   loop do
     step = timeseries.at(index)
     if set_options.call(index, step)
@@ -230,7 +226,7 @@ when :series_throttle
   if printformats.empty?
     printformats << "%{time}"
   end
-  index = timeseries.offset
+  index = 0
   timeseries.each_with_index do |step, index|
     if set_options.call(index, step)
       printformats.each do |printformats|
@@ -247,7 +243,7 @@ when :realtime
     printformats << "%{time}"
   end
 
-  index = timeseries.offset
+  index = 0
   step  = timeseries.at(index)
   loop do
     if set_options.call(index, step)
