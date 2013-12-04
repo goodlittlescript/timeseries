@@ -508,22 +508,24 @@ class TimeseriesTest < Test::Unit::TestCase
     assert_equal 0, series.n_steps_to(stop_time)
   end
 
-  def test_n_steps_to_returns_0_for_start_time_greater_than_stop_time_and_positive_period
+  def test_n_steps_to_raises_error_for_start_time_greater_than_stop_time_and_positive_period
     series = Timeseries.new(
       :start_time => Time.zone.parse("2010-01-01 00:00:01"),
       :period     => {:seconds => 1}
     )
     stop_time = Time.zone.parse("2010-01-01 00:00:00")
-    assert_equal 0, series.n_steps_to(stop_time)
+    err = assert_raises(RuntimeError) { series.n_steps_to(stop_time) }
+    assert_equal "cannot solve for n_steps (start_time > stop_time with positive period)", err.message
   end
 
-  def test_n_steps_to_returns_0_for_stop_time_greater_than_start_time_and_negative_period
+  def test_n_steps_to_raises_error_for_stop_time_greater_than_start_time_and_negative_period
     series = Timeseries.new(
       :start_time => Time.zone.parse("2010-01-01 00:00:00"),
       :period     => {:seconds => -1}
     )
     stop_time = Time.zone.parse("2010-01-01 00:00:01")
-    assert_equal 0, series.n_steps_to(stop_time)
+    err = assert_raises(RuntimeError) { series.n_steps_to(stop_time) }
+    assert_equal "cannot solve for n_steps (stop_time > start_time with negative period)", err.message
   end
 
   def test_n_steps_to_raises_error_for_start_time_not_equal_stop_time_and_empty_period

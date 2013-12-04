@@ -191,6 +191,13 @@ class Timeseries
     # shot and correct from there.
 
     n_steps = ((stop_time - start_time) / avg_sec_per_step).to_i
+    if n_steps < 0
+      if increasing?
+        raise "cannot solve for n_steps (start_time > stop_time with positive period)"
+      else
+        raise "cannot solve for n_steps (stop_time > start_time with negative period)"
+      end
+    end
     current = at(n_steps)
 
     while increasing? ? current > stop_time : current < stop_time
