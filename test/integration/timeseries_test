@@ -164,6 +164,26 @@ timeseries -p 2s -x | assert_output "\
 "
 }
 
+test_timeseries_x_transforms_input_times_according_to_specified_start_and_stop_times () {
+timeseries -p 5s -s "2010-01-01T00:00:00Z" -t "2010-01-01T00:00:30Z" |
+timeseries -p 2s -x -a none -s "2010-01-01T00:00:11Z" -t "2010-01-01T00:00:21Z" | assert_output "\
+2010-01-01T00:00:11Z
+2010-01-01T00:00:13Z
+2010-01-01T00:00:15Z
+2010-01-01T00:00:17Z
+2010-01-01T00:00:19Z
+2010-01-01T00:00:21Z
+"
+}
+
+test_timeseries_x_transforms_input_times_according_to_specified_start_and_n () {
+timeseries -p 5s -s "2010-01-01T00:00:00Z" -t "2010-01-01T00:00:30Z" |
+timeseries -p 2s -x -a none -s "2010-01-01T00:00:11Z" -n 2 | assert_output "\
+2010-01-01T00:00:11Z
+2010-01-01T00:00:13Z
+"
+}
+
 test_timeseries_x_parses_input_times_according_to_format () {
 timeseries -p 5s -n 3 -s "2010-01-01T00:00:00Z" -f "%s" |
 timeseries -p 2s -x "%s" | assert_output "\

@@ -289,7 +289,11 @@ when :transform
     printformats << "%{time}"
   end
 
-  transformer = timeseries.transformer(:start_time => nil, :stop_time => nil)
+  timeseries_bounds_specified = (options[:signature] - [:period]).any?
+  start_time = timeseries_bounds_specified ? timeseries.start_time : nil
+  stop_time  = timeseries_bounds_specified ? timeseries.stop_time : nil
+  transformer = timeseries.transformer(:start_time => start_time, :stop_time => stop_time)
+
   index, last_time = 0, nil
   parser = Timeseries::Utils.time_parser(options[:input_format])
   while line = gets
