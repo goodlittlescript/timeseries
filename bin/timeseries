@@ -115,9 +115,10 @@ options:
     options[:unbuffer] = value
   end
 
-  opts.on("-x", "--transform [INPUT_TIME_FORMAT]", "transform input times to a timeseries") do |input_time_format|
+  opts.on("-x", "--transform [INPUT_TIME_FORMAT]", "transform input times to a timeseries (assumes -u)") do |input_time_format|
     options[:mode] = :transform
     options[:input_format] = input_time_format
+    options[:unbuffer] = true
   end
 
   opts.on("-z", "--zone ZONE", "timezone (#{options[:zone]})") do |zone|
