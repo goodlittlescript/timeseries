@@ -40,12 +40,20 @@ timeseries -s "10:03" -t "10:16" -p 5m -f '%H:%M:%S' | assert_output "\
 test_timeseries_c_continues_series_from_start_time_in_file () {
 mkdir -p "$ts_test_dir"
 config_file="$ts_test_dir/config"
+output_file="$ts_test_dir/output"
 
-timeseries -s "2010-01-01T00:00:40Z" -p 1s -n 2 -c "$config_file"
-# => 2010-01-01T00:00:41Z
-timeseries -c "$config_file" -p 10s
-# => 2010-01-01T00:00:51Z
-timeseries -c "$config_file" -n 3 | assert_output "\
+timeseries -s "2010-01-01T00:00:40Z" -p 1s -n 2 -c "$config_file" > "$output_file"
+printf -- "--\n" >> "$output_file"
+timeseries -c "$config_file" -p 10s >> "$output_file"
+printf -- "--\n" >> "$output_file"
+timeseries -c "$config_file" -n 3 >> "$output_file"
+
+cat "$output_file" | assert_output "\
+2010-01-01T00:00:40Z
+2010-01-01T00:00:41Z
+--
+2010-01-01T00:00:51Z
+--
 2010-01-01T00:00:52Z
 2010-01-01T00:00:53Z
 2010-01-01T00:00:54Z
