@@ -213,6 +213,39 @@ timeseries -p 2s -x "%s" | assert_output "\
 "
 }
 
+test_timeseries_x_works_with_c () {
+mkdir -p "$ts_test_dir"
+config_file="$ts_test_dir/config"
+output_file="$ts_test_dir/output"
+
+timeseries -p 5s -n 3 -s "2010-01-01T00:00:00Z" |
+timeseries -p 2s -x -c "$config_file" > "$output_file"
+printf -- "--\n" >> "$output_file"
+
+timeseries -p 5s -n 5 -s "2010-01-01T00:00:00Z" |
+timeseries -p 3s -x -c "$config_file" >> "$output_file"
+
+printf -- "--\n" >> "$output_file"
+timeseries -p 5s -n 9 -s "2010-01-01T00:00:00Z" |
+timeseries -p 10s -x -c "$config_file" >> "$output_file"
+
+cat "$output_file" | assert_output "\
+2010-01-01T00:00:00Z
+2010-01-01T00:00:02Z
+2010-01-01T00:00:04Z
+2010-01-01T00:00:06Z
+2010-01-01T00:00:08Z
+2010-01-01T00:00:10Z
+--
+2010-01-01T00:00:13Z
+2010-01-01T00:00:16Z
+2010-01-01T00:00:19Z
+--
+2010-01-01T00:00:29Z
+2010-01-01T00:00:39Z
+"
+}
+
 test_timeseries_x_creates_error_for_out_of_order_times () {
 printf "%s\n" 1 2 2 3 1 | timeseries -p 2s -x "%s" 2>&1 | sort | assert_output "\
 1970-01-01T00:00:01Z

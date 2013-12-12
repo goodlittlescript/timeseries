@@ -149,8 +149,8 @@ if continue_file = options[:continue_file]
 
   at_exit do
     File.open(continue_file, "w") do |io|
-      index = options[:index] || 0
-      io << timeseries.at(index).iso8601(6)
+      time = options[:continue_time] || timeseries.at(0)
+      io << time.iso8601(6)
     end
   end
 end
@@ -160,6 +160,11 @@ set_options = lambda do |index, step|
   options[:last_time]  = options[:time]
   options[:index] = index
   options[:time]  = formatter.call(step)
+
+  # note I think there is a race condition whereby if the program exits
+  # abnormally after this is set but before any times are printed then, upon
+  # restart, the continue time will never be printed.
+  options[:continue_time] = step
 
   if options[:range]
     options[:last_time] ? options : nil
