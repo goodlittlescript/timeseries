@@ -289,9 +289,12 @@ when :transform
     printformats << "%{time}"
   end
 
-  timeseries_bounds_specified = (options[:signature] - [:period]).any?
-  start_time = timeseries_bounds_specified ? timeseries.start_time : nil
-  stop_time  = timeseries_bounds_specified ? timeseries.stop_time : nil
+  signature = options[:signature]
+  timeseries_start_specified = signature.include?(:start_time) || (signature.include?(:stop_time)  && signature.include?(:n_steps))
+  timeseries_stop_specified  = signature.include?(:stop_time)  || (signature.include?(:start_time) && signature.include?(:n_steps))
+
+  start_time  = timeseries_start_specified ? timeseries.start_time : nil
+  stop_time   = timeseries_stop_specified  ? timeseries.stop_time : nil
   transformer = timeseries.transformer(:start_time => start_time, :stop_time => stop_time)
 
   index, last_time = 0, nil

@@ -184,6 +184,15 @@ timeseries -p 2s -x -a none -s "2010-01-01T00:00:11Z" -n 2 | assert_output "\
 "
 }
 
+test_timeseries_x_transforms_continues_indefinitely_if_start_is_specified_alone () {
+timeseries -p 5s -s "2010-01-01T00:00:00Z" -t "2010-01-01T00:00:10Z" |
+timeseries -p 2s -x -s "2010-01-01T00:00:06Z" | assert_output "\
+2010-01-01T00:00:06Z
+2010-01-01T00:00:08Z
+2010-01-01T00:00:10Z
+"
+}
+
 test_timeseries_x_parses_input_times_according_to_format () {
 timeseries -p 5s -n 3 -s "2010-01-01T00:00:00Z" -f "%s" |
 timeseries -p 2s -x "%s" | assert_output "\
