@@ -92,11 +92,10 @@ Leap seconds are not supported.
 
 Setup:
 
-   bundle install
-   git submodule init
-   git submodule update
+    bundle install
+    git submodule init
+    git submodule update
 
 Tests:
 
-   ./test/suite
-
+    ./test/suite
