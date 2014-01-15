@@ -121,6 +121,10 @@ options:
     options[:unbuffer] = true
   end
 
+  opts.on("-w", "--timewarp", "reconfigure from stdin (-lr only)") do |value|
+    options[:timewarp] = true
+  end
+
   opts.on("-z", "--zone ZONE", "timezone (#{options[:zone]})") do |zone|
     options[:zone] = zone
   end
@@ -173,7 +177,38 @@ set_options = lambda do |index, step|
   end
 end
 
-case mode = options[:mode]
+mode = options[:mode]
+timewarp = options[:timewarp]
+queue = []
+
+if timewarp
+  require 'thread'
+  timewarp_modes = [:throttle, :realtime]
+  unless timewarp_modes.include?(mode)
+    raise "timewarp only allowed with one of -lr"
+  end
+  queue = Queue.new
+  Thread.new do
+    while line = gets
+      queue << line.strip
+    end
+  end
+end
+
+timewarper = lambda do |timeseries, index, start_time|
+  new_period = nil
+  until queue.empty?
+    new_period = queue.shift
+  end
+  if new_period
+    timeseries.reconfigure(:period => new_period, :start_time => start_time)
+    1
+  else
+    index + 1
+  end
+end
+
+case mode
 when :stream
   printformats = ARGV.dup; ARGV.clear
   if printformats.empty?
@@ -220,7 +255,7 @@ when :throttle
         puts printformats % options
       end
     end
-    index += 1
+    index = timewarper.call(timeseries, index, step)
     next_time = current_time.advance(period.data)
     sleep(next_time - current_time)
     current_time = next_time
@@ -258,7 +293,7 @@ when :realtime
       end
     end
 
-    index += 1
+    index = timewarper.call(timeseries, index, step)
     next_step = timeseries.at(index)
     sleep(next_step - step)
     step = next_step

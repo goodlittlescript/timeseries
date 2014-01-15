@@ -282,6 +282,20 @@ class Timeseries
     intervals
   end
 
+  def reconfigure(options = {})
+    @start_time = options.fetch(:start_time) { @start_time }
+    @period     = options.fetch(:period)     { @period }
+
+    unless @start_time.kind_of?(ActiveSupport::TimeWithZone)
+      raise "invalid start_time: #{@start_time.inspect} (must be a TimeWithZone)"
+    end
+    @period = Period.coerce(@period)
+
+    @increasing_series = nil
+    @avg_sec_per_step = nil
+    self
+  end
+
   private
 
   def pair_data(data)
