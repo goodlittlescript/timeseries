@@ -143,7 +143,7 @@ end
 timeseries = Timeseries.create(options)
 
 if continue_file = options[:continue_file]
-  if File.exists?(continue_file)
+  if File.exist?(continue_file)
     options[:start_time] = File.read(continue_file).strip
     options[:signature] << :start_time
     options[:snap_start_time] = nil
@@ -195,13 +195,13 @@ if timewarp
   end
 end
 
-timewarper = lambda do |timeseries, index, start_time|
+timewarper = lambda do |ts, index, start_time|
   new_period = nil
   until queue.empty?
     new_period = queue.shift
   end
   if new_period
-    timeseries.reconfigure(:period => new_period, :start_time => start_time)
+    ts.reconfigure(:period => new_period, :start_time => start_time)
     1
   else
     index + 1
@@ -217,8 +217,8 @@ when :stream
 
   timeseries.each_with_index do |step, index|
     if set_options.call(index, step)
-      printformats.each do |printformats|
-        puts printformats % options
+      printformats.each do |pf|
+        puts pf % options
       end
     end
   end
@@ -251,8 +251,8 @@ when :throttle
   loop do
     step = timeseries.at(index)
     if set_options.call(index, step)
-      printformats.each do |printformats|
-        puts printformats % options
+      printformats.each do |pf|
+        puts pf % options
       end
     end
     index = timewarper.call(timeseries, index, step)
@@ -270,8 +270,8 @@ when :series_throttle
   index = 0
   timeseries.each_with_index do |step, index|
     if set_options.call(index, step)
-      printformats.each do |printformats|
-        puts printformats % options
+      printformats.each do |pf|
+        puts pf % options
       end
     end
     next_time = current_time.advance(period.data)
@@ -288,8 +288,8 @@ when :realtime
   step  = timeseries.at(index)
   loop do
     if set_options.call(index, step)
-      printformats.each do |printformats|
-        puts printformats % options
+      printformats.each do |pf|
+        puts pf % options
       end
     end
 
@@ -308,8 +308,8 @@ when :series_realtime
   timeseries.each_with_index do |next_step, next_index|
     if step
       if set_options.call(next_index - 1, step)
-        printformats.each do |printformats|
-          puts printformats % options
+        printformats.each do |pf|
+          puts pf % options
         end
       end
       sleep(next_step - step)
@@ -319,8 +319,8 @@ when :series_realtime
   end
 
   if set_options.call(timeseries.n_step - 1, step)
-    printformats.each do |printformats|
-      puts printformats % options
+    printformats.each do |pf|
+      puts pf % options
     end
   end
 when :transform
@@ -354,8 +354,8 @@ when :transform
 
     transformer.each_to(time) do |step|
       if set_options.call(index, step)
-        printformats.each do |printformats|
-          puts printformats % options
+        printformats.each do |pf|
+          puts pf % options
         end
       end
       index += 1
