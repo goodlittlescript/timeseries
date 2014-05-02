@@ -2,6 +2,7 @@
 begin
 require 'optparse'
 require "timeseries"
+require "timeseries/formatter"
 
 options = {
   :n_steps => 1,
@@ -12,7 +13,8 @@ options = {
   :snap_start_time => :next,
   :snap_stop_time => :previous,
   :unbuffer => false,
-  :mode => :stream
+  :mode => :stream,
+  :queue => nil
 }
 
 OptionParser.new do |opts|
@@ -63,20 +65,22 @@ options:
 
   opts.on("-k", "--tick", "tick according to FILES") do
     options[:mode] = :tick
+    options[:limit] = nil
   end
 
   opts.on("-K", "--series-tick", "tick, limited by series") do
-    options[:mode] = :series_tick
+    options[:mode] = :tick
   end
 
   opts.on("-l", "--throttle PERIOD", "print with throttle (assumes -u)") do |value|
     options[:mode] = :throttle
+    options[:limit] = nil
     options[:throttle_period] = Timeseries::Period.coerce(value)
     options[:unbuffer] = true
   end
 
   opts.on("-L", "--series-throttle PERIOD", "throttle, limited by series") do |value|
-    options[:mode] = :series_throttle
+    options[:mode] = :throttle
     options[:throttle_period] = Timeseries::Period.coerce(value)
     options[:unbuffer] = true
   end
@@ -93,11 +97,12 @@ options:
 
   opts.on("-r", "--realtime", "print in realtime (assumes -u)") do |code|
     options[:mode] = :realtime
+    options[:limit] = nil
     options[:unbuffer] = true
   end
 
   opts.on("-R", "--series-realtime", "realtime, limited by series") do |code|
-    options[:mode] = :series_realtime
+    options[:mode] = :realtime
     options[:unbuffer] = true
   end
 
@@ -133,9 +138,6 @@ end.parse!
 Time.zone = options[:zone]
 options[:start_time] ||= Time.zone.now
 
-format = options[:format]
-formatter = Timeseries::Utils.time_formatter(format)
-
 if options[:unbuffer]
   $stdout.sync = true
 end
@@ -153,33 +155,14 @@ if continue_file = options[:continue_file]
 
   at_exit do
     File.open(continue_file, "w") do |io|
-      time = options[:continue_time] || timeseries.at(0)
+      time = options[:step] || timeseries.at(0)
       io << time.iso8601(6)
     end
   end
 end
 
-set_options = lambda do |index, step|
-  options[:last_index] = options[:index]
-  options[:last_time]  = options[:time]
-  options[:index] = index
-  options[:time]  = formatter.call(step)
-
-  # note I think there is a race condition whereby if the program exits
-  # abnormally after this is set but before any times are printed then, upon
-  # restart, the continue time will never be printed.
-  options[:continue_time] = step
-
-  if options[:range]
-    options[:last_time] ? options : nil
-  else
-    options
-  end
-end
-
 mode = options[:mode]
 timewarp = options[:timewarp]
-queue = []
 
 if timewarp
   require 'thread'
@@ -188,6 +171,7 @@ if timewarp
     raise "timewarp only allowed with one of -lr"
   end
   queue = Queue.new
+  options[:queue] = queue
   Thread.new do
     while line = gets
       queue << line.strip
@@ -195,174 +179,113 @@ if timewarp
   end
 end
 
-timewarper = lambda do |ts, index, start_time|
-  new_period = nil
-  until queue.empty?
-    new_period = queue.shift
-  end
-  if new_period
-    ts.reconfigure(:period => new_period, :start_time => start_time)
-    1
-  else
-    index + 1
-  end
-end
-
+formatter = Timeseries::Formatter.new(timeseries, options)
 case mode
 when :stream
-  printformats = ARGV.dup; ARGV.clear
-  if printformats.empty?
-    printformats << "%{time}"
+  formats = ARGV.dup; ARGV.clear
+  if formats.empty?
+    formats << "%{time}"
   end
 
-  timeseries.each_with_index do |step, index|
-    if set_options.call(index, step)
-      printformats.each do |pf|
-        puts pf % options
-      end
+  formatter.each do |options|
+    formats.each do |format|
+      puts format % options
     end
   end
 when :tick
-  index = 0
-  while printformat = ARGF.gets
-    step = timeseries.at(index)
-    if set_options.call(index, step)
-      print printformat % options
-    end
-    index += 1
-  end
-when :series_tick
-  timeseries.each_with_index do |step, index|
-    if printformat = ARGF.gets
-      set_options.call(index, step)
-      print printformat % options
+  formatter.each do |options|
+    if format = ARGF.gets
+      print format % options
     else
       break
     end
   end
+
 when :throttle
-  period = options[:throttle_period]
-  current_time = Time.zone.now
-  printformats = ARGV.dup; ARGV.clear
-  if printformats.empty?
-    printformats << "%{time}"
+  formats = ARGV.dup; ARGV.clear
+  if formats.empty?
+    formats << "%{time}"
   end
-  index = 0
-  loop do
-    step = timeseries.at(index)
-    if set_options.call(index, step)
-      printformats.each do |pf|
-        puts pf % options
-      end
+
+  current_time = Time.zone.now
+  throttle_period = options[:throttle_period].data
+
+  formatter.each do |options|
+    formats.each do |format|
+      puts format % options
     end
-    index = timewarper.call(timeseries, index, step)
-    next_time = current_time.advance(period.data)
+
+    next_time = current_time.advance(throttle_period)
     sleep(next_time - current_time)
     current_time = next_time
   end
-when :series_throttle
-  period = options[:throttle_period]
-  current_time = Time.zone.now
-  printformats = ARGV.dup; ARGV.clear
-  if printformats.empty?
-    printformats << "%{time}"
-  end
-  index = 0
-  timeseries.each_with_index do |step, index|
-    if set_options.call(index, step)
-      printformats.each do |pf|
-        puts pf % options
-      end
-    end
-    next_time = current_time.advance(period.data)
-    sleep(next_time - current_time)
-    current_time = next_time
-  end
+
 when :realtime
-  printformats = ARGV.dup; ARGV.clear
-  if printformats.empty?
-    printformats << "%{time}"
+  formats = ARGV.dup; ARGV.clear
+  if formats.empty?
+    formats << "%{time}"
   end
 
-  index = 0
-  step  = timeseries.at(index)
-  loop do
-    if set_options.call(index, step)
-      printformats.each do |pf|
-        puts pf % options
-      end
+  last_time = nil
+  formatter.each do |options|
+    current_time = options[:step]
+
+    unless last_time.nil?
+      sleep(current_time - last_time)
     end
 
-    index = timewarper.call(timeseries, index, step)
-    next_step = timeseries.at(index)
-    sleep(next_step - step)
-    step = next_step
-  end
-when :series_realtime
-  printformats = ARGV.dup; ARGV.clear
-  if printformats.empty?
-    printformats << "%{time}"
-  end
-
-  step = nil
-  timeseries.each_with_index do |next_step, next_index|
-    if step
-      if set_options.call(next_index - 1, step)
-        printformats.each do |pf|
-          puts pf % options
-        end
-      end
-      sleep(next_step - step)
+    formats.each do |format|
+      puts format % options
     end
 
-    step = next_step
+    last_time = current_time
   end
 
-  if set_options.call(timeseries.n_step - 1, step)
-    printformats.each do |pf|
-      puts pf % options
-    end
-  end
 when :transform
-  printformats = ARGV.dup; ARGV.clear
-  if printformats.empty?
-    printformats << "%{time}"
+  formats = ARGV.dup; ARGV.clear
+  if formats.empty?
+    formats << "%{time}"
   end
 
   signature = options[:signature]
   timeseries_start_specified = signature.include?(:start_time) || (signature.include?(:stop_time)  && signature.include?(:n_steps))
   timeseries_stop_specified  = signature.include?(:stop_time)  || (signature.include?(:start_time) && signature.include?(:n_steps))
 
-  start_time  = timeseries_start_specified ? timeseries.start_time : nil
-  stop_time   = timeseries_stop_specified  ? timeseries.stop_time : nil
-  transformer = timeseries.transformer(:start_time => start_time, :stop_time => stop_time)
+  current_time = timeseries_start_specified ? timeseries.start_time : nil
+  stop_time    = timeseries_stop_specified  ? timeseries.stop_time : nil
+  duration     = timeseries.period.data
+  index        = 0
+  last_time    = nil
+  parser       = Timeseries::Utils.time_parser(options[:input_format])
 
-  index, last_time = 0, nil
-  parser = Timeseries::Utils.time_parser(options[:input_format])
   while line = gets
     line.strip!
-    time = parser.call line
+    time = parser.call(line)
 
     if last_time && time < last_time
-      last_line = options[:input_time]
+      last_line = formatter.options[:input_time]
       raise "input times out of order (got #{last_line.inspect} then #{line.inspect})"
     end
 
     # set line (the formatted input time) as 'input_time'
     # to correspond to the formatted 'time'
-    options[:input_time] = line
+    formatter.options[:input_time] = line
+    current_time ||= time
 
-    transformer.each_to(time) do |step|
-      if set_options.call(index, step)
-        printformats.each do |pf|
-          puts pf % options
+    while (stop_time.nil? || current_time <= stop_time) && current_time <= time
+      formatter.advance_to(current_time, index)
+      if options = formatter.print_options
+        formats.each do |format|
+          puts format % options
         end
       end
+      current_time = current_time.advance(duration)
       index += 1
     end
 
     last_time = time
   end
+
 end
 
 rescue Interrupt
