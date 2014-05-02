@@ -1,6 +1,5 @@
 require "timeseries/period"
 require "timeseries/utils"
-require "timeseries/transformer"
 
 # Use factory method `create` to build a new Timeseries, unless you truely know
 # your arguments are complete
@@ -234,12 +233,6 @@ class Timeseries
         index += 1
       end
     end
-  end
-
-  def transformer(options = {})
-    start_time = options.fetch(:start_time, self.start_time)
-    stop_time = options.fetch(:stop_time, self.stop_time)
-    Transformer.new(period, start_time, stop_time)
   end
 
   def offset(n)
