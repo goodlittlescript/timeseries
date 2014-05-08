@@ -6,57 +6,154 @@
 #
 
 test_timeseries_with_no_inputs_prints_time_in_iso8601 () {
-timeseries | sed -e "s/[[:digit:]]/_/g" | assert_output "\
+timeseries | underscore_numbers | assert_output "\
 ____-__-__T__:__:__Z
 "
 }
 
-test_timeseries_prints_time_in_specified_print_formats () {
-timeseries -f '%Y-%m-%d' "a %{time}" "b %{time}" | assert_output "\
-a $(date -u +'%Y-%m-%d')
-b $(date -u +'%Y-%m-%d')
+test_timeseries_step_attributes () {
+timeseries -s 2010-01-01 -p 1d -n 3 -e '%Y-%m-%d' -f "%{index} %-10{last_time} %{time}" | assert_output "\
+0            2010-01-01
+1 2010-01-01 2010-01-02
+2 2010-01-02 2010-01-03
 "
 }
 
-test_timeseries_makes_index_available () {
-timeseries -n 2 "%{index}" | assert_output "\
-0
-1
+#
+# -A
+#
+
+test_timeseries_A_reconfigures_attributes_from_stdin () {
+printf '{"a": "%s"}\n' zero one two | timeseries -f "%{index} %{a}" -mkA | assert_output "\
+0 zero
+1 one
+2 two
 "
 }
+
+#
+# -a
+#
+
+test_timeseries_a_sets_attributes_for_format () {
+timeseries -a '{"a": "one"}' -f "A: %{a}" | assert_output "\
+A: one
+"
+}
+
+#
+# -b
+#
 
 test_timeseries_rounds_inner_by_default () {
-timeseries -s "10:03" -t "10:16" -p 5m -f '%H:%M:%S' | assert_output "\
+timeseries -s "10:03" -t "10:16" -p 5m -e '%H:%M:%S' | assert_output "\
 10:05:00
 10:10:00
 10:15:00
 "
 }
 
-#
-# -c
-#
-
-test_timeseries_c_continues_series_from_start_time_in_file () {
+test_timeseries_b_adjusts_start_and_stop_to_boundary_type () {
 mkdir -p "$ts_test_dir"
-config_file="$ts_test_dir/config"
-output_file="$ts_test_dir/output"
+timeseries -b pn -s "10:03" -t "10:16" -p 5m -e '%H:%M' > "$ts_test_dir/pn"
+timeseries -b nn -s "10:03" -t "10:16" -p 5m -e '%H:%M' > "$ts_test_dir/nn"
+timeseries -b pp -s "10:03" -t "10:16" -p 5m -e '%H:%M' > "$ts_test_dir/pp"
+timeseries -b np -s "10:03" -t "10:16" -p 5m -e '%H:%M' > "$ts_test_dir/np"
 
-timeseries -s "2010-01-01T00:00:40Z" -p 1s -n 2 -c "$config_file" > "$output_file"
-printf -- "--\n" >> "$output_file"
-timeseries -c "$config_file" -p 10s >> "$output_file"
-printf -- "--\n" >> "$output_file"
-timeseries -c "$config_file" -n 3 >> "$output_file"
+paste -d ',' "$ts_test_dir"/{pn,nn,pp,np} | assert_output "\
+10:00,10:05,10:00,10:05
+10:05,10:10,10:05,10:10
+10:10,10:15,10:10,10:15
+10:15,10:20,10:15,
+10:20,,,
+"
+}
 
-cat "$output_file" | assert_output "\
-2010-01-01T00:00:40Z
-2010-01-01T00:00:41Z
---
-2010-01-01T00:00:51Z
---
-2010-01-01T00:00:52Z
-2010-01-01T00:00:53Z
-2010-01-01T00:00:54Z
+test_timeseries_b_outer_is_the_same_as_pn () {
+diff \
+  <(timeseries -b outer -s "10:03" -t "10:16" -p 5m -e '%H:%M') \
+  <(timeseries -b pn    -s "10:03" -t "10:16" -p 5m -e '%H:%M')
+}
+
+test_timeseries_b_inner_is_the_same_as_np () {
+diff \
+  <(timeseries -b inner -s "10:03" -t "10:16" -p 5m -e '%H:%M') \
+  <(timeseries -b np    -s "10:03" -t "10:16" -p 5m -e '%H:%M')
+}
+
+#
+# -e
+#
+
+test_timeseries_e_specifes_time_format () {
+timeseries -e '%Y-%m-%d' | assert_output "\
+$(date -u +'%Y-%m-%d')
+"
+}
+
+#
+# -F
+#
+
+test_timeseries_F_reconfigures_line_formats_from_stdin () {
+printf '%%{index} %s\n' zero one two | timeseries -mkF | assert_output "\
+0 zero
+1 one
+2 two
+"
+}
+
+#
+# -f
+#
+
+test_timeseries_f_specifes_line_format () {
+timeseries -f "a %{time}" | underscore_numbers | assert_output "\
+a ____-__-__T__:__:__Z
+"
+}
+
+#
+# -G
+#
+
+test_timeseries_G_gates_series_output_by_input_times () {
+timeseries -p 5s -s "2010-01-01T00:00:00Z" -t "2010-01-01T00:00:30Z" |
+timeseries -p 2s -G -b none -s "2010-01-01T00:00:11Z" -t "2010-01-01T00:00:21Z" | assert_output "\
+2010-01-01T00:00:11Z
+2010-01-01T00:00:13Z
+2010-01-01T00:00:15Z
+2010-01-01T00:00:17Z
+2010-01-01T00:00:19Z
+2010-01-01T00:00:21Z
+"
+}
+
+test_timeseries_G_outputs_nothing_if_gate_stops_before_series () {
+output=$(
+  timeseries -p mon -s "2008-01-01" -t "2009-01-01" |
+  timeseries -p mon -G -s "2010-01-01" -t "2011-01-01"
+)
+[ -z "$output" ]
+}
+
+test_timeseries_G_outputs_full_series_if_gate_starts_after_series () {
+timeseries -s "2010-01-01T00:00:30Z" |
+timeseries -p 2s -G -b none -s "2010-01-01T00:00:11Z" -t "2010-01-01T00:00:21Z" | assert_output "\
+2010-01-01T00:00:11Z
+2010-01-01T00:00:13Z
+2010-01-01T00:00:15Z
+2010-01-01T00:00:17Z
+2010-01-01T00:00:19Z
+2010-01-01T00:00:21Z
+"
+}
+
+test_timeseries_G_limits_output_according_to_n () {
+timeseries -p 5s -s "2010-01-01T00:00:00Z" -t "2010-01-01T00:00:30Z" |
+timeseries -p 2s -G -b none -s "2010-01-01T00:00:11Z" -n 2 | assert_output "\
+2010-01-01T00:00:11Z
+2010-01-01T00:00:13Z
 "
 }
 
@@ -64,10 +161,78 @@ cat "$output_file" | assert_output "\
 # -g
 #
 
-test_timeseries_g_prints_only_full_ranges () {
-timeseries -s "10:03" -t "10:16" -p 5m -f '%H:%M:%S' -g '%{last_time} %{time}' | assert_output "\
-10:05:00 10:10:00
-10:10:00 10:15:00
+test_timeseries_g_gates_and_synchronizes_start_time_to_first_input_time () {
+timeseries -p 5s -n 3 -s "2010-01-01T00:00:00Z" |
+timeseries -p 2s -n 10 -g | assert_output "\
+2010-01-01T00:00:00Z
+2010-01-01T00:00:02Z
+2010-01-01T00:00:04Z
+2010-01-01T00:00:06Z
+2010-01-01T00:00:08Z
+2010-01-01T00:00:10Z
+"
+}
+
+test_timeseries_g_limits_output_according_to_t () {
+timeseries -p 5s -s "2010-01-01T00:00:00Z" -t "2010-01-01T00:00:30Z" |
+timeseries -p 2s -g -t "2010-01-01T00:00:7Z" | assert_output "\
+2010-01-01T00:00:00Z
+2010-01-01T00:00:02Z
+2010-01-01T00:00:04Z
+2010-01-01T00:00:06Z
+"
+}
+
+test_timeseries_g_limits_output_according_to_n () {
+timeseries -p 5s -s "2010-01-01T00:00:00Z" -t "2010-01-01T00:00:30Z" |
+timeseries -p 2s -g -n 2 | assert_output "\
+2010-01-01T00:00:00Z
+2010-01-01T00:00:02Z
+"
+}
+
+test_timeseries_g_continues_indefinitely_with_m () {
+timeseries -p 5s -s "2010-01-01T00:00:00Z" -t "2010-01-01T00:00:10Z" |
+timeseries -p 2s -mg | assert_output "\
+2010-01-01T00:00:00Z
+2010-01-01T00:00:02Z
+2010-01-01T00:00:04Z
+2010-01-01T00:00:06Z
+2010-01-01T00:00:08Z
+2010-01-01T00:00:10Z
+"
+}
+
+test_timeseries_g_parses_input_times_according_to_format () {
+timeseries -p 5s -n 3 -s "2010-01-01T00:00:00Z" -e "%s" |
+timeseries -p 2s -n 10 -g "%s" | assert_output "\
+2010-01-01T00:00:00Z
+2010-01-01T00:00:02Z
+2010-01-01T00:00:04Z
+2010-01-01T00:00:06Z
+2010-01-01T00:00:08Z
+2010-01-01T00:00:10Z
+"
+}
+
+test_timeseries_g_ignores_out_of_order_times () {
+printf "%s\n" 1 2 2 3 1 7 | timeseries -p 2s -n 10 -g "%s" | assert_output "\
+1970-01-01T00:00:01Z
+1970-01-01T00:00:03Z
+1970-01-01T00:00:05Z
+1970-01-01T00:00:07Z
+"
+}
+
+test_timeseries_g_with_negative_period () {
+timeseries -p -5s -n 3 -s "2010-01-01T00:00:10Z" |
+timeseries -p -2s -n 10 -g | assert_output "\
+2010-01-01T00:00:10Z
+2010-01-01T00:00:08Z
+2010-01-01T00:00:06Z
+2010-01-01T00:00:04Z
+2010-01-01T00:00:02Z
+2010-01-01T00:00:00Z
 "
 }
 
@@ -75,50 +240,17 @@ timeseries -s "10:03" -t "10:16" -p 5m -f '%H:%M:%S' -g '%{last_time} %{time}' |
 # -k
 #
 
-test_timeseries_tick_reads_formats_from_stdin () {
-printf "%s %%{time}\n" a b |
-timeseries -f '%S' -s "00:00" -k | assert_output "\
-a 00
-b 01
+test_timeseries_k_prints_on_line_from_stdin () {
+printf "\n\n" | timeseries -f '%{index}' -m -k | assert_output "\
+0
+1
 "
 }
 
-test_timeseries_tick_ignores_series_end () {
-printf "%s %%{time}\n" a b c d e |
-timeseries -f '%S' -s "00:00" -n 3 -k | assert_output "\
-a 00
-b 01
-c 02
-d 03
-e 04
-"
-}
-
-test_timeseries_tick_treats_args_as_files () {
-mkdir -p "$ts_test_dir"
-one="$ts_test_dir/one"
-two="$ts_test_dir/two"
-
-printf "%s %%{time}\n" a b > "$one"
-printf "%s %%{time}\n" c > "$two"
-
-timeseries -f '%S' -s "00:00" -k "$one" "$two" | assert_output "\
-a 00
-b 01
-c 02
-"
-}
-
-#
-# -K
-#
-
-test_timeseries_series_tick_stops_according_to_series () {
-printf "%s %%{time}\n" a b c d e |
-timeseries -f '%S' -s "00:00" -n 3 -K | assert_output "\
-a 00
-b 01
-c 02
+test_timeseries_k_stops_according_to_series () {
+printf "\n\n\n" | timeseries -f '%{index}' -n 2 -k | assert_output "\
+0
+1
 "
 }
 
@@ -144,12 +276,42 @@ ____-__-__T__:__:__.______Z
 "
 }
 
+test_timeseries_i_without_precision_prints_with_precision_0 () {
+timeseries -i | sed -e "s/[[:digit:]]/_/g" | assert_output "\
+____-__-__T__:__:__Z
+"
+}
+
+#
+# -l
+#
+
+test_timeseries_l_throttles_print_to_throttle_period () {
+mkdir -p "$ts_test_dir"
+timeseries -n 100 -l 0.1  > "$ts_test_dir/output" &
+sleep 1
+kill %1
+[ $(wc -l "$ts_test_dir/output" | awk '{print $1}') -le 10 ]
+}
+
+#
+# -m
+#
+
+test_timeseries_m_streams_indefinitely () {
+timeseries -e '%Y-%m-%d' -n 1 -m | head -n 3 | assert_output "\
+$(date -u +'%Y-%m-%d')
+$(date -u +'%Y-%m-%d')
+$(date -u +'%Y-%m-%d')
+"
+}
+
 #
 # -n
 #
 
 test_timeseries_n_assumes_period () {
-timeseries -f '%Y-%m-%d' -n 3 | assert_output "\
+timeseries -e '%Y-%m-%d' -n 3 | assert_output "\
 $(date -u +'%Y-%m-%d')
 $(date -u +'%Y-%m-%d')
 $(date -u +'%Y-%m-%d')
@@ -157,100 +319,74 @@ $(date -u +'%Y-%m-%d')
 }
 
 #
-# -x
+# -p
 #
 
-test_timeseries_x_transforms_input_times_according_to_period () {
-timeseries -p 5s -n 3 -s "2010-01-01T00:00:00Z" |
-timeseries -p 2s -x | assert_output "\
-2010-01-01T00:00:00Z
-2010-01-01T00:00:02Z
-2010-01-01T00:00:04Z
-2010-01-01T00:00:06Z
-2010-01-01T00:00:08Z
-2010-01-01T00:00:10Z
+test_timeseries_p_allows_negative_period () {
+timeseries -p -1s -s '2010-01-01T00:00:02Z' -f "%{index} %{time}" -n 3 | assert_output "\
+0 2010-01-01T00:00:02Z
+1 2010-01-01T00:00:01Z
+2 2010-01-01T00:00:00Z
 "
 }
 
-test_timeseries_x_transforms_input_times_according_to_specified_start_and_stop_times () {
-timeseries -p 5s -s "2010-01-01T00:00:00Z" -t "2010-01-01T00:00:30Z" |
-timeseries -p 2s -x -a none -s "2010-01-01T00:00:11Z" -t "2010-01-01T00:00:21Z" | assert_output "\
-2010-01-01T00:00:11Z
-2010-01-01T00:00:13Z
-2010-01-01T00:00:15Z
-2010-01-01T00:00:17Z
-2010-01-01T00:00:19Z
-2010-01-01T00:00:21Z
-"
-}
+#
+# -r
+#
 
-test_timeseries_x_transforms_input_times_according_to_specified_start_and_n () {
-timeseries -p 5s -s "2010-01-01T00:00:00Z" -t "2010-01-01T00:00:30Z" |
-timeseries -p 2s -x -a none -s "2010-01-01T00:00:11Z" -n 2 | assert_output "\
-2010-01-01T00:00:11Z
-2010-01-01T00:00:13Z
-"
-}
-
-test_timeseries_x_transforms_continues_indefinitely_if_start_is_specified_alone () {
-timeseries -p 5s -s "2010-01-01T00:00:00Z" -t "2010-01-01T00:00:10Z" |
-timeseries -p 2s -x -s "2010-01-01T00:00:06Z" | assert_output "\
-2010-01-01T00:00:06Z
-2010-01-01T00:00:08Z
-2010-01-01T00:00:10Z
-"
-}
-
-test_timeseries_x_parses_input_times_according_to_format () {
-timeseries -p 5s -n 3 -s "2010-01-01T00:00:00Z" -f "%s" |
-timeseries -p 2s -x "%s" | assert_output "\
-2010-01-01T00:00:00Z
-2010-01-01T00:00:02Z
-2010-01-01T00:00:04Z
-2010-01-01T00:00:06Z
-2010-01-01T00:00:08Z
-2010-01-01T00:00:10Z
-"
-}
-
-test_timeseries_x_works_with_c () {
+test_timeseries_r_throttles_print_to_timeseries_period () {
 mkdir -p "$ts_test_dir"
-config_file="$ts_test_dir/config"
-output_file="$ts_test_dir/output"
+timeseries -n 100 -p 0.1 -r > "$ts_test_dir/output" &
+sleep 1
+kill %1
+[ $(wc -l "$ts_test_dir/output" | awk '{print $1}') -le 10 ]
+}
 
-timeseries -p 5s -n 3 -s "2010-01-01T00:00:00Z" |
-timeseries -p 2s -x -c "$config_file" > "$output_file"
-printf -- "--\n" >> "$output_file"
+#
+# -v
+#
 
-timeseries -p 5s -n 5 -s "2010-01-01T00:00:00Z" |
-timeseries -p 3s -x -c "$config_file" >> "$output_file"
-
-printf -- "--\n" >> "$output_file"
-timeseries -p 5s -n 9 -s "2010-01-01T00:00:00Z" |
-timeseries -p 10s -x -c "$config_file" >> "$output_file"
-
-cat "$output_file" | assert_output "\
-2010-01-01T00:00:00Z
-2010-01-01T00:00:02Z
-2010-01-01T00:00:04Z
-2010-01-01T00:00:06Z
-2010-01-01T00:00:08Z
-2010-01-01T00:00:10Z
---
-2010-01-01T00:00:13Z
-2010-01-01T00:00:16Z
-2010-01-01T00:00:19Z
---
-2010-01-01T00:00:29Z
-2010-01-01T00:00:39Z
+test_timeseries_v_prints_only_full_intervals () {
+timeseries -n 3 -p 1d -s 2010-01-01 -e '%Y-%m-%d' -f '%{index} %{last_time} %{time}' -v | assert_output "\
+1 2010-01-01 2010-01-02
+2 2010-01-02 2010-01-03
 "
 }
 
-test_timeseries_x_creates_error_for_out_of_order_times () {
-printf "%s\n" 1 2 2 3 1 | timeseries -p 2s -x "%s" 2>&1 | sort | assert_output "\
-1970-01-01T00:00:01Z
-1970-01-01T00:00:03Z
-input times out of order (got \"3\" then \"1\")
+#
+# -W
+#
+
+test_timeseries_W_reconfigures_period_at_current_step () {
+printf '%s\n' '' 1s 1m 1h '' |
+timeseries -p 1y -s '2010-01-01' -f "%{index},%{time},%{last_time}" -mkW | assert_output "\
+0,2010-01-01T00:00:00Z,
+1,2010-01-01T00:00:01Z,2010-01-01T00:00:00Z
+2,2010-01-01T00:01:01Z,2010-01-01T00:00:01Z
+3,2010-01-01T01:01:01Z,2010-01-01T00:01:01Z
+4,2010-01-01T02:01:01Z,2010-01-01T01:01:01Z
+"
+}
+
+test_timeseries_W_allows_reconfigure_on_first_input () {
+printf '%s\n' 1s '' '' 1m |
+timeseries -p 1y -s '2010-01-01' -f "%{index},%{time},%{last_time}" -mkW | assert_output "\
+0,2010-01-01T00:00:00Z,
+1,2010-01-01T00:00:01Z,2010-01-01T00:00:00Z
+2,2010-01-01T00:00:02Z,2010-01-01T00:00:01Z
+3,2010-01-01T00:01:02Z,2010-01-01T00:00:02Z
+"
+}
+
+#
+# -z
+#
+
+test_timeseries_z_sets_time_zone () {
+timeseries -z MST7MDT -n 3 -p 1h -s 2010-03-14T01:00:00-0700 | assert_output "\
+2010-03-14T01:00:00-07:00
+2010-03-14T03:00:00-06:00
+2010-03-14T04:00:00-06:00
 "
 }
 

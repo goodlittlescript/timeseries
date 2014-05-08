@@ -20,7 +20,7 @@ class ReadmeTest < Test::Unit::TestCase
 2010-03-31T00:00:00Z
 }.lstrip, output)
 
-    output = `timeseries -s "00:00:00" -t "01:00:00" -p 15m -f "%H:%M"`
+    output = `timeseries -s "00:00:00" -t "01:00:00" -p 15m -e "%H:%M"`
     assert_equal(%{
 00:00
 00:15

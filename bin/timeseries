@@ -1,292 +1,156 @@
 #!/usr/bin/env ruby
 begin
-require 'optparse'
-require "timeseries"
-require "timeseries/formatter"
+  require 'optparse'
+  require 'timeseries/command'
 
-options = {
-  :n_steps => 1,
-  :period => "1s",
-  :zone   => "UTC",
-  :format => 0,
-  :signature => [],
-  :snap_start_time => :next,
-  :snap_stop_time => :previous,
-  :unbuffer => false,
-  :mode => :stream,
-  :queue => nil
-}
+  options = {
+    :attributes       => nil,
+    :blocking         => false,
+    :input_mode       => nil,
+    :input_time_format => nil,
+    :n_steps          => 1,
+    :period           => '1s',
+    :require_last_time => false,
+    :signature        => [],
+    :snap_start_time  => :next,
+    :snap_stop_time   => :previous,
+    :stream_forever   => false,
+    :throttle         => nil,
+    :time_format      => 0,
+    :unbuffer         => false,
+    :zone             => 'UTC',
+  }
 
-OptionParser.new do |opts|
-  opts.banner = %{
-usage: timeseries [options] [PRINT_FORMATS...|FILES...]
+  OptionParser.new do |opts|
+    opts.banner = %{
+  usage: timeseries [options] [PRINT_FORMATS...|FILES...]
 
-  Generate time series data.
+    Generate time series data.
 
-options:
-}.lstrip
+  options:
+  }.lstrip
 
-  opts.on("-a", "--adjust TYPE", "adjust start/stop (inner)") do |code|
-    case code
-    when "pp"          then options.merge!(:snap_start_time => :previous, :snap_stop_time => :previous)
-    when "pn", "outer" then options.merge!(:snap_start_time => :previous, :snap_stop_time => :next)
-    when "np", "inner" then options.merge!(:snap_start_time => :next, :snap_stop_time => :previous)
-    when "nn"          then options.merge!(:snap_start_time => :next, :snap_stop_time => :next)
-    when "none"        then options.merge!(:snap_start_time => nil, :snap_stop_time => nil)
-    else raise "invalid rounding type: #{code}"
-    end
-  end
-
-  opts.on("-c", "--continue FILE", "continue from start_time in file") do |continue_file|
-    options[:continue_file] = continue_file
-  end
-
-  opts.on("-d", "--debug", "debug mode") do
-    $DEBUG = true
-  end
-
-  opts.on("-f", "--format FORMAT", "strftime format") do |str|
-    options[:format] = str
-  end
-
-  opts.on("-g", "--[no-]range", "only print full ranges") do |value|
-    options[:range] = value
-  end
-
-  opts.on("-h", "--help", "print this help") do
-    puts opts
-    puts
-    exit
-  end
-
-  opts.on("-i", "--iso8601 [PRECISION]", "iso8601 format (0)") do |value|
-    options[:format] = value.to_i
-  end
-
-  opts.on("-k", "--tick", "tick according to FILES") do
-    options[:mode] = :tick
-    options[:limit] = nil
-  end
-
-  opts.on("-K", "--series-tick", "tick, limited by series") do
-    options[:mode] = :tick
-  end
-
-  opts.on("-l", "--throttle PERIOD", "print with throttle (assumes -u)") do |value|
-    options[:mode] = :throttle
-    options[:limit] = nil
-    options[:throttle_period] = Timeseries::Period.coerce(value)
-    options[:unbuffer] = true
-  end
-
-  opts.on("-L", "--series-throttle PERIOD", "throttle, limited by series") do |value|
-    options[:mode] = :throttle
-    options[:throttle_period] = Timeseries::Period.coerce(value)
-    options[:unbuffer] = true
-  end
-
-  opts.on("-n", "--n-steps N", "number of steps (#{options[:n_steps]})") do |n_steps|
-    options[:n_steps] = n_steps.to_i
-    options[:signature] << :n_steps
-  end
-
-  opts.on("-p", "--period PERIOD", "period (#{options[:period]})") do |period|
-    options[:period] = period
-    options[:signature] << :period
-  end
-
-  opts.on("-r", "--realtime", "print in realtime (assumes -u)") do |code|
-    options[:mode] = :realtime
-    options[:limit] = nil
-    options[:unbuffer] = true
-  end
-
-  opts.on("-R", "--series-realtime", "realtime, limited by series") do |code|
-    options[:mode] = :realtime
-    options[:unbuffer] = true
-  end
-
-  opts.on("-s", "--start START_TIME", "start time (now)") do |start_time|
-    options[:start_time] = start_time
-    options[:signature] << :start_time
-  end
-
-  opts.on("-t", "--stop STOP_TIME", "stop time") do |stop_time|
-    options[:stop_time] = stop_time
-    options[:signature] << :stop_time
-  end
-
-  opts.on("-u", "--[no-]unbuffer", "unbuffer output (#{options[:zone]})") do |value|
-    options[:unbuffer] = value
-  end
-
-  opts.on("-x", "--transform [INPUT_TIME_FORMAT]", "transform input times to a timeseries (assumes -u)") do |input_time_format|
-    options[:mode] = :transform
-    options[:input_format] = input_time_format
-    options[:unbuffer] = true
-  end
-
-  opts.on("-w", "--timewarp", "reconfigure from stdin (-lr only)") do |value|
-    options[:timewarp] = true
-  end
-
-  opts.on("-z", "--zone ZONE", "timezone (#{options[:zone]})") do |zone|
-    options[:zone] = zone
-  end
-end.parse!
-
-Time.zone = options[:zone]
-options[:start_time] ||= Time.zone.now
-
-if options[:unbuffer]
-  $stdout.sync = true
-end
-
-timeseries = Timeseries.create(options)
-
-if continue_file = options[:continue_file]
-  if File.exist?(continue_file)
-    options[:start_time] = File.read(continue_file).strip
-    options[:signature] << :start_time
-    options[:snap_start_time] = nil
-    options[:snap_stop_time] = nil
-    timeseries = Timeseries.create(options).offset(1)
-  end
-
-  at_exit do
-    File.open(continue_file, "w") do |io|
-      time = options[:step] || timeseries.at(0)
-      io << time.iso8601(6)
-    end
-  end
-end
-
-mode = options[:mode]
-timewarp = options[:timewarp]
-
-if timewarp
-  require 'thread'
-  timewarp_modes = [:throttle, :realtime]
-  unless timewarp_modes.include?(mode)
-    raise "timewarp only allowed with one of -lr"
-  end
-  queue = Queue.new
-  options[:queue] = queue
-  Thread.new do
-    while line = gets
-      queue << line.strip
-    end
-  end
-end
-
-formatter = Timeseries::Formatter.new(timeseries, options)
-case mode
-when :stream
-  formats = ARGV.dup; ARGV.clear
-  if formats.empty?
-    formats << "%{time}"
-  end
-
-  formatter.each do |options|
-    formats.each do |format|
-      puts format % options
-    end
-  end
-when :tick
-  formatter.each do |options|
-    if format = ARGF.gets
-      print format % options
-    else
-      break
-    end
-  end
-
-when :throttle
-  formats = ARGV.dup; ARGV.clear
-  if formats.empty?
-    formats << "%{time}"
-  end
-
-  current_time = Time.zone.now
-  throttle_period = options[:throttle_period].data
-
-  formatter.each do |options|
-    formats.each do |format|
-      puts format % options
+    opts.on("-A", "--attributes-input", "read attributes from stdin") do |str|
+      options[:input_mode] = :attributes
     end
 
-    next_time = current_time.advance(throttle_period)
-    sleep(next_time - current_time)
-    current_time = next_time
-  end
-
-when :realtime
-  formats = ARGV.dup; ARGV.clear
-  if formats.empty?
-    formats << "%{time}"
-  end
-
-  last_time = nil
-  formatter.each do |options|
-    current_time = options[:step]
-
-    unless last_time.nil?
-      sleep(current_time - last_time)
+    opts.on("-a", "--attributes JSON", "attributes for format") do |str|
+      options[:attributes] = Timeseries::Command.load_attrs(str)
     end
 
-    formats.each do |format|
-      puts format % options
-    end
-
-    last_time = current_time
-  end
-
-when :transform
-  formats = ARGV.dup; ARGV.clear
-  if formats.empty?
-    formats << "%{time}"
-  end
-
-  signature = options[:signature]
-  timeseries_start_specified = signature.include?(:start_time) || (signature.include?(:stop_time)  && signature.include?(:n_steps))
-  timeseries_stop_specified  = signature.include?(:stop_time)  || (signature.include?(:start_time) && signature.include?(:n_steps))
-
-  current_time = timeseries_start_specified ? timeseries.start_time : nil
-  stop_time    = timeseries_stop_specified  ? timeseries.stop_time : nil
-  duration     = timeseries.period.data
-  index        = 0
-  last_time    = nil
-  parser       = Timeseries::Utils.time_parser(options[:input_format])
-
-  while line = gets
-    line.strip!
-    time = parser.call(line)
-
-    if last_time && time < last_time
-      last_line = formatter.options[:input_time]
-      raise "input times out of order (got #{last_line.inspect} then #{line.inspect})"
-    end
-
-    # set line (the formatted input time) as 'input_time'
-    # to correspond to the formatted 'time'
-    formatter.options[:input_time] = line
-    current_time ||= time
-
-    while (stop_time.nil? || current_time <= stop_time) && current_time <= time
-      formatter.advance_to(current_time, index)
-      if options = formatter.print_options
-        formats.each do |format|
-          puts format % options
-        end
+    opts.on("-b", "--boundary-type TYPE", "adjust start/stop (inner)") do |code|
+      case code
+      when "pp"          then options.merge!(:snap_start_time => :previous, :snap_stop_time => :previous)
+      when "pn", "outer" then options.merge!(:snap_start_time => :previous, :snap_stop_time => :next)
+      when "np", "inner" then options.merge!(:snap_start_time => :next, :snap_stop_time => :previous)
+      when "nn"          then options.merge!(:snap_start_time => :next, :snap_stop_time => :next)
+      when "none"        then options.merge!(:snap_start_time => nil, :snap_stop_time => nil)
+      else raise "invalid rounding type: #{code}"
       end
-      current_time = current_time.advance(duration)
-      index += 1
     end
 
-    last_time = time
+    opts.on("--debug", "debug mode") do
+      $DEBUG = true
+    end
+
+    opts.on("-e", "--time-format STRFTIME", "strftime format") do |str|
+      options[:time_format] = str
+    end
+
+    opts.on("-F", "--format-input", "read line formats from stdin") do |str|
+      options[:input_mode] = :line_format
+    end
+
+    opts.on("-f", "--format SPRINTF", "sprintf line format") do |str|
+      options[:line_format] = str
+    end
+
+    opts.on("-G", "--gate-input [STRFTIME]", "gate output on input times (implies -k)") do |value|
+      options[:input_mode] = :gate
+      options[:input_time_format] = value if value
+      options[:blocking] = true
+    end
+
+    opts.on("-g", "--sync-gate-input [STRFTIME]", "gate starting series at first input time (implies '-Gkb none')") do |value|
+      options[:input_mode] = :sync_gate
+      options[:input_time_format] = value if value
+      options[:blocking] = true
+      options.merge!(:snap_start_time => nil, :snap_stop_time => nil)
+    end
+
+    opts.on("-h", "--help", "print this help") do
+      puts opts
+      puts
+      exit
+    end
+
+    opts.on("-i", "--iso8601 [PRECISION]", "iso8601 format (default)") do |str|
+      options[:time_format] = str.to_i
+    end
+
+    opts.on("-k", "--blocking", "block for input") do
+      options[:blocking] = true
+    end
+
+    opts.on("-l", "--throttle PERIOD", "print with throttle (assumes -u)") do |value|
+      options[:throttle] = Timeseries::Period.coerce(value).ref_size
+      options[:unbuffer] = true
+    end
+
+    opts.on("-m", "--stream", "generate steps indefinitely") do
+      options[:stream_forever] = true
+    end
+
+    opts.on("-n", "--n-steps N", "number of steps (#{options[:n_steps]})") do |n_steps|
+      options[:n_steps] = n_steps.to_i
+      options[:signature] << :n_steps
+    end
+
+    opts.on("-p", "--period PERIOD", "period (#{options[:period]})") do |period|
+      options[:period] = period
+      options[:signature] << :period
+    end
+
+    opts.on("-r", "--realtime", "throttle to period (assumes -u)") do |code|
+      options[:throttle] = :realtime
+      options[:unbuffer] = true
+    end
+
+    opts.on("-s", "--start START_TIME", "start time (now)") do |start_time|
+      options[:start_time] = start_time
+      options[:signature] << :start_time
+    end
+
+    opts.on("-t", "--stop STOP_TIME", "stop time") do |stop_time|
+      options[:stop_time] = stop_time
+      options[:signature] << :stop_time
+    end
+
+    opts.on("-u", "--[no-]unbuffer", "unbuffer output") do |value|
+      options[:unbuffer] = value
+    end
+
+    opts.on("-v", "--only-intervals", "only print full intervals") do
+      options[:require_last_time] = true
+    end
+
+    opts.on("-W", "--period-input", "reconfigures period from stdin") do
+      options[:input_mode] = :period
+    end
+
+    opts.on("-z", "--zone ZONE", "timezone (#{options[:zone]})") do |zone|
+      options[:zone] = zone
+    end
+  end.parse!
+
+  Time.zone = options[:zone]
+
+  if options[:unbuffer]
+    $stdout.sync = true
   end
 
-end
+  command = Timeseries::Command.new(options)
+  command.process(ARGF, $stdout)
 
 rescue Interrupt
   exit 130

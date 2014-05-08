@@ -1,2 +1,6 @@
 # Setup test paths
 export PATH="$PWD/bin:$PWD/vendor/ts/bin:$PATH"
+
+underscore_numbers () {
+  sed -e "s/[[:digit:]]/_/g"
+}

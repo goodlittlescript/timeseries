@@ -34,8 +34,8 @@ From the command line:
     2010-02-28 00:00:00 UTC
     2010-03-31 00:00:00 UTC
 
-    # start, stop, period, format
-    $ timeseries -s "00:00:00" -t "01:00:00" -p 15m -f "%H:%M"
+    # start, stop, period, time format
+    $ timeseries -s "00:00:00" -t "01:00:00" -p 15m -e "%H:%M"
     00:00
     00:15
     00:30
