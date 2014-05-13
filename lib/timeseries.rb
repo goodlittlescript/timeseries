@@ -1,5 +1,5 @@
+require "active_support/time"
 require "timeseries/period"
-require "timeseries/utils"
 
 # Use factory method `create` to build a new Timeseries, unless you truely know
 # your arguments are complete
@@ -13,11 +13,11 @@ class Timeseries
       options = coerce_to_options(options)
 
       if start_time = options[:start_time]
-        options[:start_time] = Utils.coerce(start_time)
+        options[:start_time] = coerce_to_time(start_time)
       end
 
       if stop_time = options[:stop_time]
-        options[:stop_time] = Utils.coerce(stop_time)
+        options[:stop_time] = coerce_to_time(stop_time)
       end
 
       if period = options[:period]
@@ -79,6 +79,19 @@ class Timeseries
     end
 
     private
+
+    def coerce_to_time(obj)
+      case obj
+      when ActiveSupport::TimeWithZone then obj
+      when String then Time.zone.parse(obj)
+      else
+        if obj.respond_to?(:to_time)
+          obj.to_time.in_time_zone
+        else
+          raise "cannot coerce to TimeWithZone: #{obj.inspect}"
+        end
+      end
+    end
 
     def coerce_to_options(obj)
       case obj
