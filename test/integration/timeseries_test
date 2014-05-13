@@ -24,7 +24,7 @@ timeseries -s 2010-01-01 -p 1d -n 3 -e '%Y-%m-%d' -f "%{index} %-10{last_time} %
 #
 
 test_timeseries_A_reconfigures_attributes_from_stdin () {
-printf '{"a": "%s"}\n' zero one two | timeseries -f "%{index} %{a}" -mkA | assert_output "\
+printf '{"a": "%s"}\n' zero one two | timeseries -f "%{index} %{a}" -mA | assert_output "\
 0 zero
 1 one
 2 two
@@ -96,7 +96,7 @@ $(date -u +'%Y-%m-%d')
 #
 
 test_timeseries_F_reconfigures_line_formats_from_stdin () {
-printf '%%{index} %s\n' zero one two | timeseries -mkF | assert_output "\
+printf '%%{index} %s\n' zero one two | timeseries -m -F | assert_output "\
 0 zero
 1 one
 2 two
@@ -359,7 +359,7 @@ timeseries -n 3 -p 1d -s 2010-01-01 -e '%Y-%m-%d' -f '%{index} %{last_time} %{ti
 
 test_timeseries_W_reconfigures_period_at_current_step () {
 printf '%s\n' '' 1s 1m 1h '' |
-timeseries -p 1y -s '2010-01-01' -f "%{index},%{time},%{last_time}" -mkW | assert_output "\
+timeseries -p 1y -s '2010-01-01' -f "%{index},%{time},%{last_time}" -mW | assert_output "\
 0,2010-01-01T00:00:00Z,
 1,2010-01-01T00:00:01Z,2010-01-01T00:00:00Z
 2,2010-01-01T00:01:01Z,2010-01-01T00:00:01Z
@@ -370,7 +370,7 @@ timeseries -p 1y -s '2010-01-01' -f "%{index},%{time},%{last_time}" -mkW | asser
 
 test_timeseries_W_allows_reconfigure_on_first_input () {
 printf '%s\n' 1s '' '' 1m |
-timeseries -p 1y -s '2010-01-01' -f "%{index},%{time},%{last_time}" -mkW | assert_output "\
+timeseries -p 1y -s '2010-01-01' -f "%{index},%{time},%{last_time}" -mW | assert_output "\
 0,2010-01-01T00:00:00Z,
 1,2010-01-01T00:00:01Z,2010-01-01T00:00:00Z
 2,2010-01-01T00:00:02Z,2010-01-01T00:00:01Z

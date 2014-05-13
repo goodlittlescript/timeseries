@@ -30,8 +30,9 @@ begin
   options:
   }.lstrip
 
-    opts.on("-A", "--attributes-input", "read attributes from stdin") do |str|
+    opts.on("-A", "--attributes-input", "read attributes from stdin (assumes -k)") do |str|
       options[:input_mode] = :attributes
+      options[:blocking] = true
     end
 
     opts.on("-a", "--attributes JSON", "attributes for format") do |str|
@@ -57,21 +58,22 @@ begin
       options[:output_time_format] = str
     end
 
-    opts.on("-F", "--format-input", "read line formats from stdin") do |str|
+    opts.on("-F", "--format-input", "read line formats from stdin (assumes -k)") do |str|
       options[:input_mode] = :line_format
+      options[:blocking] = true
     end
 
     opts.on("-f", "--format SPRINTF", "sprintf line format") do |str|
       options[:line_format] = str
     end
 
-    opts.on("-G", "--gate-input [STRFTIME]", "gate output on input times (implies -k)") do |value|
+    opts.on("-G", "--gate-input [STRFTIME]", "gate output on input times (assumes -k)") do |value|
       options[:input_mode] = :gate
       options[:input_time_format] = value if value
       options[:blocking] = true
     end
 
-    opts.on("-g", "--sync-gate-input [STRFTIME]", "gate starting series at first input time (implies '-Gkb none')") do |value|
+    opts.on("-g", "--sync-gate-input [STRFTIME]", "gate starting series at first input time (assumes '-Gkb none')") do |value|
       options[:input_mode] = :sync_gate
       options[:input_time_format] = value if value
       options[:blocking] = true
@@ -86,6 +88,10 @@ begin
 
     opts.on("-i", "--iso8601 [PRECISION]", "iso8601 format (default)") do |str|
       options[:output_time_format] = str.to_i
+    end
+
+    opts.on("-K", "--non-blocking", "do not block for input") do
+      options[:blocking] = false
     end
 
     opts.on("-k", "--blocking", "block for input") do
@@ -134,8 +140,9 @@ begin
       options[:require_last_time] = true
     end
 
-    opts.on("-W", "--period-input", "reconfigures period from stdin") do
+    opts.on("-W", "--period-input", "reconfigures period from stdin (assumes -k)") do
       options[:input_mode] = :period
+      options[:blocking] = true
     end
 
     opts.on("-z", "--zone ZONE", "timezone (#{options[:zone]})") do |zone|
