@@ -23,7 +23,7 @@ class CommandTest < Test::Unit::TestCase
   TIMES = [utc_time, tz_time]
 
   def test_time_format_parse_round_trip_with_integer
-    command = Command.new(:input_time_format => 6, :time_format => 6)
+    command = Command.new(:input_time_format => 6, :output_time_format => 6)
     TIMES.each do |time|
       time_str = command.format_time(time)
       assert_equal time, command.parse_time(time_str)
@@ -32,7 +32,7 @@ class CommandTest < Test::Unit::TestCase
 
   def test_time_format_parse_round_trip_with_format
     format  = "%Y-%m-%d %Z"
-    command = Command.new(:input_time_format => format, :time_format => format)
+    command = Command.new(:input_time_format => format, :output_time_format => format)
     TIMES.each do |time|
       time_str = command.format_time(time)
       expected = time.change(:hour => 0, :minute => 0, :second => 0, :usec => 0)

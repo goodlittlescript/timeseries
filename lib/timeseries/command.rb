@@ -42,9 +42,9 @@ class Timeseries
     attr_reader :blocking
     attr_reader :input_mode
     attr_reader :input_time_format
+    attr_reader :output_time_format
     attr_reader :line_format
     attr_reader :throttle
-    attr_reader :time_format
     attr_reader :series_options
 
     def initialize(options = {})
@@ -52,11 +52,9 @@ class Timeseries
       @blocking       = options.fetch(:blocking, false)
       @input_mode     = options.fetch(:input_mode, nil)
       @input_time_format = options.fetch(:input_time_format, nil)
+      @output_time_format = options.fetch(:output_time_format, 0)
       @line_format    = options.fetch(:line_format, "%{time}")
-
       @throttle       = options.fetch(:throttle, nil)
-      @time_format    = options.fetch(:time_format, 0)
-
       @series_options = options
     end
 
@@ -181,13 +179,13 @@ class Timeseries
     def format_time(time)
       return nil if time.nil?
 
-      case time_format
+      case output_time_format
       when Integer
-        time.iso8601(time_format)
+        time.iso8601(output_time_format)
       when nil
         time.to_s
       else
-        time.strftime(time_format)
+        time.strftime(output_time_format)
       end
     end
 

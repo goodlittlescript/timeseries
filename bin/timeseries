@@ -16,7 +16,7 @@ begin
     :snap_stop_time   => :previous,
     :stream_forever   => false,
     :throttle         => nil,
-    :time_format      => 0,
+    :output_time_format => 0,
     :unbuffer         => false,
     :zone             => 'UTC',
   }
@@ -54,7 +54,7 @@ begin
     end
 
     opts.on("-e", "--time-format STRFTIME", "strftime format") do |str|
-      options[:time_format] = str
+      options[:output_time_format] = str
     end
 
     opts.on("-F", "--format-input", "read line formats from stdin") do |str|
@@ -85,7 +85,7 @@ begin
     end
 
     opts.on("-i", "--iso8601 [PRECISION]", "iso8601 format (default)") do |str|
-      options[:time_format] = str.to_i
+      options[:output_time_format] = str.to_i
     end
 
     opts.on("-k", "--blocking", "block for input") do
