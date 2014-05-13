@@ -7,6 +7,8 @@ class Timeseries
     attr_reader :offset
     attr_reader :time
     attr_reader :last_time
+    attr_reader :start_time
+    attr_reader :stop_time
 
     attr_reader :require_last_time
     attr_reader :stream_forever
@@ -21,6 +23,9 @@ class Timeseries
       @require_last_time = options.fetch(:require_last_time, false)
       @stream_forever = options.fetch(:stream_forever, false)
 
+      @start_time     = @time
+      @stop_time      = stream_forever ? nil : timeseries.stop_time
+
       advance if require_last_time
     end
 
@@ -31,8 +36,10 @@ class Timeseries
     def advance
       @last_time = @time
       @index += 1
-      if stream_forever || index < timeseries.n_steps
-        @time = timeseries.at(index)
+      next_time = timeseries.at(index)
+
+      if stream_forever || (timeseries.increasing? ? next_time <= stop_time : next_time >= stop_time)
+        @time = next_time
       else
         @time = nil
       end
@@ -63,8 +70,9 @@ class Timeseries
           :start_time => last_time,
         )
         @offset += (index - 1)
-        @index = 1
-        @time = timeseries.at(index)
+        @index = 0
+        @time = last_time
+        advance
       else
         timeseries.reconfigure(:period => str)
       end

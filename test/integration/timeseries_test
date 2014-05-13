@@ -378,6 +378,16 @@ timeseries -p 1y -s '2010-01-01' -f "%{index},%{time},%{last_time}" -mW | assert
 "
 }
 
+test_timeseries_W_limits_output_as_per_series () {
+printf '%s\n' 1s '' 2s '' '' '' |
+timeseries -s '2010-01-01' -n 6 -W | assert_output "\
+2010-01-01T00:00:00Z
+2010-01-01T00:00:01Z
+2010-01-01T00:00:03Z
+2010-01-01T00:00:05Z
+"
+}
+
 #
 # -z
 #
