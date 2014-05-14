@@ -49,7 +49,7 @@ class Timeseries
 
     def initialize(options = {})
       @attributes     = options.fetch(:attributes, nil)
-      @blocking       = options.fetch(:blocking, false)
+      @blocking       = options.fetch(:blocking, options.has_key?(:input_mode))
       @input_mode     = options.fetch(:input_mode, nil)
       @input_time_format = options.fetch(:input_time_format, nil)
       @output_time_format = options.fetch(:output_time_format, 0)

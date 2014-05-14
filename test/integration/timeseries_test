@@ -283,6 +283,23 @@ ____-__-__T__:__:__Z
 }
 
 #
+# -K
+#
+
+test_timeseries_K_prevents_blocking_when_input_mode_is_specified () {
+timeseries -e '%Y-%m-%d' -KAm | head -n 3 | assert_output "\
+$(date -u +'%Y-%m-%d')
+$(date -u +'%Y-%m-%d')
+$(date -u +'%Y-%m-%d')
+"
+}
+
+test_timeseries_K_order_wrt_input_option_does_not_matter () {
+diff <(timeseries -e '%Y-%m-%d' -KAm | head -n 3) \
+     <(timeseries -e '%Y-%m-%d' -AKm | head -n 3)
+}
+
+#
 # -l
 #
 

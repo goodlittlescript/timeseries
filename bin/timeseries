@@ -5,8 +5,9 @@ begin
 
   options = {
     :attributes       => nil,
-    :blocking         => false,
-    :input_mode       => nil,
+    # -- leave undefined to allow defaults in command --
+    # :blocking         => nil,
+    # :input_mode       => nil,
     :input_time_format => nil,
     :n_steps          => 1,
     :period           => '1s',
@@ -32,7 +33,6 @@ begin
 
     opts.on("-A", "--attributes-input", "read attributes from stdin (assumes -k)") do |str|
       options[:input_mode] = :attributes
-      options[:blocking] = true
     end
 
     opts.on("-a", "--attributes JSON", "attributes for format") do |str|
@@ -60,7 +60,6 @@ begin
 
     opts.on("-F", "--format-input", "read line formats from stdin (assumes -k)") do |str|
       options[:input_mode] = :line_format
-      options[:blocking] = true
     end
 
     opts.on("-f", "--format SPRINTF", "sprintf line format") do |str|
@@ -70,13 +69,11 @@ begin
     opts.on("-G", "--gate-input [STRFTIME]", "gate output on input times (assumes -k)") do |value|
       options[:input_mode] = :gate
       options[:input_time_format] = value if value
-      options[:blocking] = true
     end
 
     opts.on("-g", "--sync-gate-input [STRFTIME]", "gate starting series at first input time (assumes '-Gkb none')") do |value|
       options[:input_mode] = :sync_gate
       options[:input_time_format] = value if value
-      options[:blocking] = true
       options.merge!(:snap_start_time => nil, :snap_stop_time => nil)
     end
 
@@ -142,7 +139,6 @@ begin
 
     opts.on("-W", "--period-input", "reconfigures period from stdin (assumes -k)") do
       options[:input_mode] = :period
-      options[:blocking] = true
     end
 
     opts.on("-z", "--zone ZONE", "timezone (#{options[:zone]})") do |zone|
