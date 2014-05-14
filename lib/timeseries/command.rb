@@ -61,7 +61,13 @@ class Timeseries
     def process(stdin, stdout)
       iterator = \
       if input_mode == :sync_gate
-        line = read_line(stdin)
+        line = NODATA
+        until line != NODATA
+          line = read_line(stdin)
+        end
+        if line == EOF
+          return
+        end
         start_time = parse_time(line)
         Iterator.new(series_options.merge(:start_time => start_time))
       else
@@ -79,7 +85,7 @@ class Timeseries
         when line == NODATA
           # do nothing
         when line == EOF
-          break if blocking
+          break if blocking || input_mode
         when input_mode == :attributes
           @attributes = self.class.load_attrs(line)
         when input_mode == :line_format

@@ -31,6 +31,11 @@ printf '{"a": "%s"}\n' zero one two | timeseries -f "%{index} %{a}" -mA | assert
 "
 }
 
+test_timeseries_A_terminates_when_stdin_closes () {
+num_lines=$(timeseries -A -Km <&- | head -n 100 | wc -l)
+[ $num_lines -lt 100 ]
+}
+
 #
 # -a
 #
@@ -103,6 +108,11 @@ printf '%%{index} %s\n' zero one two | timeseries -m -F | assert_output "\
 "
 }
 
+test_timeseries_F_terminates_when_stdin_closes () {
+num_lines=$(timeseries -F -Km <&- | head -n 100 | wc -l)
+[ $num_lines -lt 100 ]
+}
+
 #
 # -f
 #
@@ -155,6 +165,11 @@ timeseries -p 2s -G -b none -s "2010-01-01T00:00:11Z" -n 2 | assert_output "\
 2010-01-01T00:00:11Z
 2010-01-01T00:00:13Z
 "
+}
+
+test_timeseries_G_terminates_when_stdin_closes () {
+num_lines=$(printf "\n" "" "" | timeseries -G -Km | head -n 100 | wc -l)
+[ $num_lines -lt 100 ]
 }
 
 #
@@ -236,6 +251,11 @@ timeseries -p -2s -n 10 -g | assert_output "\
 "
 }
 
+test_timeseries_g_terminates_when_stdin_closes () {
+num_lines=$(printf "\n" "" "" | timeseries -g -Km | head -n 100 | wc -l)
+[ $num_lines -lt 100 ]
+}
+
 #
 # -k
 #
@@ -287,7 +307,7 @@ ____-__-__T__:__:__Z
 #
 
 test_timeseries_K_prevents_blocking_when_input_mode_is_specified () {
-timeseries -e '%Y-%m-%d' -KAm | head -n 3 | assert_output "\
+timeseries -e '%Y-%m-%d' -KAm < /dev/zero | head -n 3 | assert_output "\
 $(date -u +'%Y-%m-%d')
 $(date -u +'%Y-%m-%d')
 $(date -u +'%Y-%m-%d')
@@ -295,8 +315,13 @@ $(date -u +'%Y-%m-%d')
 }
 
 test_timeseries_K_order_wrt_input_option_does_not_matter () {
-diff <(timeseries -e '%Y-%m-%d' -KAm | head -n 3) \
-     <(timeseries -e '%Y-%m-%d' -AKm | head -n 3)
+diff <(timeseries -e '%Y-%m-%d' -KAm < /dev/zero | head -n 3) \
+     <(timeseries -e '%Y-%m-%d' -AKm < /dev/zero | head -n 3)
+}
+
+test_timeseries_K_alone_does_not_terminate_when_stdin_closes () {
+num_lines=$(printf "\n" "" "" | timeseries -Km | head -n 100 | wc -l)
+[ $num_lines -eq 100 ]
 }
 
 #
@@ -403,6 +428,11 @@ timeseries -s '2010-01-01' -n 6 -W | assert_output "\
 2010-01-01T00:00:03Z
 2010-01-01T00:00:05Z
 "
+}
+
+test_timeseries_W_terminates_when_stdin_closes () {
+num_lines=$(timeseries -W -Km <&- | head -n 100 | wc -l)
+[ $num_lines -lt 100 ]
 }
 
 #
