@@ -60,7 +60,7 @@ class Timeseries
       when [             :stop_time,          :n_steps] then method(:solve_start_time)
       when [                         :period, :n_steps] then method(:solve_stop_time)
       when [:start_time, :stop_time, :period          ] then method(:solve_n_steps)
-      when [:start_time, :stop_time,          :n_steps] then
+      when [:start_time, :stop_time,          :n_steps] then method(:solve_period)
       when [:start_time,             :period, :n_steps] then method(:solve_stop_time)
       when [             :stop_time, :period, :n_steps] then method(:solve_start_time)
       when [:start_time, :stop_time, :period, :n_steps] then raise "too much information"
@@ -119,6 +119,20 @@ class Timeseries
         :period     => options[:period],
         :n_steps    => options[:n_steps],
       }
+    end
+
+    def solve_period(options)
+      options = set_defaults(options)
+      options[:start_time] = snap_time(*options.values_at(:period, :start_time, :snap_start_time))
+      options[:stop_time]  = snap_time(*options.values_at(:period, :stop_time,  :snap_stop_time))
+
+      start_time = options[:start_time]
+      stop_time  = options[:stop_time]
+      n_steps    = options[:n_steps]
+      period_in_s = n_steps == 0 ? nil : (stop_time - start_time) / (n_steps - 1.0)
+
+      options[:period] = period_in_s ? {:seconds => period_in_s} : {}
+      options
     end
 
     def solve_n_steps(options)
