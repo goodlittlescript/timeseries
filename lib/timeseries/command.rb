@@ -14,6 +14,27 @@ class Timeseries
         attributes
       end
 
+      def load_data_file(file)
+        attributes = {}
+        JSON.load(File.read(file)).each_pair do |key, raw_attrs|
+          attrs = {}
+          # keys must be symbolized for sprintf
+          raw_attrs.each_pair do |key, value|
+            attrs[key.to_sym] = value
+          end
+          attributes[key] = attrs
+        end
+        attributes
+      end
+
+      def load_data_dir(dir)
+        attributes = {}
+        Dir.glob("#{dir}/*").each do |file|
+          attributes[File.basename(file)] = load_attrs(File.read(file))
+        end
+        attributes
+      end
+
       def io_queue(io)
         queue = Queue.new
 
@@ -42,6 +63,7 @@ class Timeseries
     attr_reader :blocking
     attr_reader :data_attr
     attr_reader :data_index_attr
+    attr_reader :data_file
     attr_reader :input_mode
     attr_reader :input_time_format
     attr_reader :output_time_format
@@ -54,6 +76,7 @@ class Timeseries
       @blocking       = options.fetch(:blocking, options.has_key?(:input_mode))
       @data_attr      = options.fetch(:data_attr, 'data').to_sym
       @data_index_attr = "#{@data_attr}_index".to_sym
+      @data_file      = options.fetch(:data_file, nil)
       @input_mode     = options.fetch(:input_mode, nil)
       @input_time_format = options.fetch(:input_time_format, nil)
       @output_time_format = options.fetch(:output_time_format, 0)
@@ -205,9 +228,19 @@ class Timeseries
       fields = line.split(/\s+/)
       attributes = []
       fields.each_with_index do |field, index|
-        attributes << {data_attr => field, data_index_attr => index}
+        attributes << data_attrs(field, index)
       end
       attributes
+    end
+
+    def data_attrs(field, index)
+      attrs = {data_attr => field, data_index_attr => index}
+      if data_file
+        @data_file_data ||= File.directory?(data_file) ? self.class.load_data_dir(data_file) : self.class.load_data_file(data_file)
+        attrs.merge(@data_file_data[field] ||= {})
+      else
+        attrs
+      end
     end
 
     def each_attrs(last_time, time, index)

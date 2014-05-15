@@ -158,6 +158,57 @@ num_lines=$(timeseries -D -Km <&- | head -n 100 | wc -l)
 }
 
 #
+# -d
+#
+
+test_timeseries_d_resolves_each_data_feed_value_to_corresponding_object_in_JSON_file () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+1 2 3
+3 2 1
+DOC
+
+cat > "$ts_test_dir/data" <<DOC
+{
+  "1": {"letter": "A"},
+  "2": {"letter": "B"},
+  "3": {"letter": "C"}
+}
+DOC
+
+timeseries -s 2010-01-01 -n 3 -f "%{time} %{data_index} %{data} %{letter}" -d  "$ts_test_dir/data" < "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1 A
+2010-01-01T00:00:00Z 1 2 B
+2010-01-01T00:00:00Z 2 3 C
+2010-01-01T00:00:01Z 0 3 C
+2010-01-01T00:00:01Z 1 2 B
+2010-01-01T00:00:01Z 2 1 A
+"
+}
+
+test_timeseries_d_resolves_each_data_feed_value_to_corresponding_JSON_file_directory () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+1 2 3
+3 2 1
+DOC
+
+mkdir -p "$ts_test_dir/data.d"
+cat > "$ts_test_dir/data.d/1" <<<'{"letter": "A"}'
+cat > "$ts_test_dir/data.d/2" <<<'{"letter": "B"}'
+cat > "$ts_test_dir/data.d/3" <<<'{"letter": "C"}'
+
+timeseries -s 2010-01-01 -n 3 -f "%{time} %{data_index} %{data} %{letter}" -d  "$ts_test_dir/data.d" < "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1 A
+2010-01-01T00:00:00Z 1 2 B
+2010-01-01T00:00:00Z 2 3 C
+2010-01-01T00:00:01Z 0 3 C
+2010-01-01T00:00:01Z 1 2 B
+2010-01-01T00:00:01Z 2 1 A
+"
+}
+
+#
 # -e
 #
 
