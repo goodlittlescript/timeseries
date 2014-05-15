@@ -20,12 +20,6 @@ number of days in a month, especially in a leap year.
     2012-02-29T00:00:00Z
     2012-03-31T00:00:00Z
 
-The time format of the series can be changed using options (-f and -i) and the
-print format can be set using arguments. See the Modes and Formats sections
-for more details.
-
-    $ timeseries -f
-
 ## OPTIONS
 
 These options control how `timeseries` operates:
@@ -33,7 +27,7 @@ These options control how `timeseries` operates:
 * `-A`, `--attributes-input`:
 
   Sets the input mode such that each input line sets the format attributes.
-  Each line is expected to be a JSON object.
+  Each line is expected to be a JSON object. (assumes -k)
 
 * `-a`, `--attributes JSON`:
 
@@ -81,13 +75,13 @@ These options control how `timeseries` operates:
   whereby all times up to the gate will be printed (ie < for positive periods
   or > for negative periods). The format of the input can be specified as an
   argument, without which **timeseries** will guess according to the input.
-
-  Gate mode assumes `-k`.
+  (assumes `-k`, doesn't make much sense without `-k`).
 
 * `-g`, `--sync-gate-input [TIME_FORMAT]`
 
   Same as `-G` but synchronizes the series start time with the first input
-  time (other series parameters `-pns` are all respected).
+  time; other series parameters `-pns` are all respected. (assumes '-Gkb
+  none')
 
 * `-h`, `--help`
 
@@ -98,11 +92,21 @@ These options control how `timeseries` operates:
   Use iso8601 format with the specified precision, by default 0. The `-e` and
   `-i` options are mutually exclusive.
 
+* `-K`, `--non-blocking`
+
+  Turns off blocking. Specifically non-blocking mode parallelizes the reads
+  and writes of **timeseries**. Used in conjunction with the various input
+  modes (and typically `-m`) this allow for on the fly reconfiguration. Note
+  that as with any parallel process the exact time of an input being applied
+  is indeterminate; if many inputs are received in rapid succession typically
+  only the last will be observed in the output (ie multiple inputs may be
+  applied between outputs).
+
 * `-k`, `--blocking`
 
   In blocking mode **timeseries** only prints when a line is received on
   stdin. The content of the line does not matter unless combined with one of
-  the input modes.
+  the input modes. In blocking mode an EOF on stdin terminates the series.
 
 * `-l`, `--throttle PERIOD`
 
@@ -110,7 +114,7 @@ These options control how `timeseries` operates:
 
 * `-m`, `--stream`
 
-  In stream mode **timeseries** generates times indefinitely.
+  Stream mode causes **timeseries** to generate times.
 
 * `-n`, `--n-steps N`
 
@@ -150,10 +154,12 @@ These options control how `timeseries` operates:
 
   Only print steps where :last_time is present.
 
-* `-W`, `--period-input`
+* `-W`, `--period-input PERIOD_STR`
 
-  Treats each input line as a new period for the series (this can be used to
-  speed up, slow down, or rewind the series).
+  Treats each input line as a new period for the series; this can be used to
+  speed up, slow down, or rewind the series. The period change applies
+  immediately, such that the next output time is `last_time + new_period`, or
+  the start time for the first output. (assumes `-k`)
 
 * `-z`, `--time-zone ZONE`
 
