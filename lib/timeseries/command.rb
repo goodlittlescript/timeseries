@@ -87,7 +87,8 @@ class Timeseries
 
     def process(stdin, stdout)
       iterator = \
-      if input_mode == :sync_gate
+      case input_mode
+      when :sync_gate
         line = NODATA
         until line != NODATA
           line = read_line(stdin)
@@ -97,11 +98,28 @@ class Timeseries
         end
         start_time = parse_time(line)
         Iterator.new(series_options.merge(:start_time => start_time))
+      when :cycle_data
+        lines = []
+        while line = stdin.gets
+          lines << line.split(/\s+/)
+        end
+        attributes = []
+        lines.transpose.each do |fields|
+          attributes << parse_feed_attributes(fields.join(' '))
+        end
+        @attributes = attributes.cycle
+        stdin = [NODATA].cycle
+        stdin.instance_eval %{
+          def gets
+            self.next
+          end
+        }
+        Iterator.new(series_options)
       else
         Iterator.new(series_options)
       end
 
-      unless blocking
+      unless blocking || input_mode == :cycle_data
         stdin = self.class.io_queue(stdin)
       end
 
@@ -266,6 +284,10 @@ class Timeseries
         yield attributes.merge(base_attrs)
       when Array
         attributes.each do |attrs|
+          yield attrs.merge(base_attrs)
+        end
+      when Enumerator
+        attributes.next.each do |attrs|
           yield attrs.merge(base_attrs)
         end
       end

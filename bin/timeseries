@@ -52,13 +52,18 @@ begin
       end
     end
 
+    opts.on("-C", "--cycle-data [ATTR]", "read stdin data feed, transpose, and cycle (assumes -k)") do |value|
+      options[:input_mode] = :cycle_data
+      options[:data_attr]  = value if value
+    end
+
     opts.on("-D", "--data [ATTR]", "read data feed from stdin (assumes -k)") do |value|
       options[:input_mode] = :data
       options[:data_attr]  = value if value
     end
 
     opts.on("-d", "--data-file FILE_OR_DIR", "resolve data feed using JSON in file or dir (assumes -kD)") do |value|
-      options[:input_mode] = :data
+      options[:input_mode] ||= :data
       options[:data_file]  = value
     end
 
