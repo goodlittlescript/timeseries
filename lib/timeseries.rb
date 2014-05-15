@@ -57,12 +57,12 @@ class Timeseries
       when [:start_time,             :period          ] then method(:solve_stop_time)
       when [:start_time,                      :n_steps] then method(:solve_stop_time)
       when [             :stop_time, :period          ] then
-      when [             :stop_time,          :n_steps] then
+      when [             :stop_time,          :n_steps] then method(:solve_start_time)
       when [                         :period, :n_steps] then method(:solve_stop_time)
       when [:start_time, :stop_time, :period          ] then method(:solve_n_steps)
       when [:start_time, :stop_time,          :n_steps] then
       when [:start_time,             :period, :n_steps] then method(:solve_stop_time)
-      when [             :stop_time, :period, :n_steps] then
+      when [             :stop_time, :period, :n_steps] then method(:solve_start_time)
       when [:start_time, :stop_time, :period, :n_steps] then raise "too much information"
       end or raise "unable to solve #{signature.join(',')}"
     end
@@ -103,6 +103,22 @@ class Timeseries
       options[:period]     ||= default_period
       options[:n_steps]    ||= default_n_steps
       options
+    end
+
+    def solve_start_time(options)
+      options = set_defaults(options)
+
+      reverse_options = {
+        :start_time => options[:stop_time],
+        :period     => options[:period].reverse,
+        :n_steps    => options[:n_steps],
+      }
+
+      {
+        :start_time => new(reverse_options).stop_time,
+        :period     => options[:period],
+        :n_steps    => options[:n_steps],
+      }
     end
 
     def solve_n_steps(options)

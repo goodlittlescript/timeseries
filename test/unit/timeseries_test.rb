@@ -166,6 +166,27 @@ class TimeseriesTest < Test::Unit::TestCase
 
   #
   # Timeseries.normalize
+  # stop,period,n_steps
+
+  def test_normalize_sets_start_time_from_n_steps_stop_time_and_period
+    options = Timeseries.normalize(
+      :stop_time  => Time.zone.parse("2010-01-01 01:00:00"),
+      :period     => {:minutes => 15},
+      :n_steps    => 5
+    )
+    assert_equal(Time.zone.parse("2010-01-01 00:00:00"), options[:start_time])
+  end
+
+  def test_normalize_assumes_one_second_period_for_stop_time_and_n_steps
+    options = Timeseries.normalize(
+      :stop_time  => Time.zone.parse("2010-01-01 00:00:05"),
+      :n_steps    => 6
+    )
+    assert_equal(Time.zone.parse("2010-01-01 00:00:00"), options[:start_time])
+  end
+
+  #
+  # Timeseries.normalize
   # with signatures
 
   def test_normalize_uses_signature_as_specified
