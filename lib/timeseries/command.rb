@@ -40,6 +40,8 @@ class Timeseries
 
     attr_reader :attributes
     attr_reader :blocking
+    attr_reader :data_attr
+    attr_reader :data_index_attr
     attr_reader :input_mode
     attr_reader :input_time_format
     attr_reader :output_time_format
@@ -50,6 +52,8 @@ class Timeseries
     def initialize(options = {})
       @attributes     = options.fetch(:attributes, nil)
       @blocking       = options.fetch(:blocking, options.has_key?(:input_mode))
+      @data_attr      = options.fetch(:data_attr, 'data').to_sym
+      @data_index_attr = "#{@data_attr}_index".to_sym
       @input_mode     = options.fetch(:input_mode, nil)
       @input_time_format = options.fetch(:input_time_format, nil)
       @output_time_format = options.fetch(:output_time_format, 0)
@@ -95,6 +99,8 @@ class Timeseries
           gate_time = iterator.time
         when input_mode == :gate || input_mode == :sync_gate 
           gate_time = parse_time(line)
+        when input_mode == :data
+          @attributes = parse_feed_attributes(line)
         end
 
         iterator.each_until(gate_time) do |last_time, time, index|
@@ -195,6 +201,15 @@ class Timeseries
       end
     end
 
+    def parse_feed_attributes(line)
+      fields = line.split(/\s+/)
+      attributes = []
+      fields.each_with_index do |field, index|
+        attributes << {data_attr => field, data_index_attr => index}
+      end
+      attributes
+    end
+
     def each_attrs(last_time, time, index)
       if last_time == @time
         @last_time_str = @time_str
@@ -205,7 +220,7 @@ class Timeseries
       @time_str = format_time(time)
       @time = time
 
-      attrs = {
+      base_attrs = {
         :last_time => @last_time_str,
         :time      => @time_str,
         :index     => index,
@@ -213,9 +228,13 @@ class Timeseries
 
       case attributes
       when nil
-        yield attrs
+        yield base_attrs
       when Hash
-        yield attributes.merge(attrs)
+        yield attributes.merge(base_attrs)
+      when Array
+        attributes.each do |attrs|
+          yield attrs.merge(base_attrs)
+        end
       end
     end
   end

@@ -107,6 +107,57 @@ diff \
 }
 
 #
+# -D
+#
+
+test_timeseries_D_prints_for_each_column_in_a_data_feed () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+1 2 3
+4 5 6
+7 8 9
+DOC
+
+timeseries -s 2010-01-01 -n 3 -f "%{time} %{data_index} %{data}" -D < "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1
+2010-01-01T00:00:00Z 1 2
+2010-01-01T00:00:00Z 2 3
+2010-01-01T00:00:01Z 0 4
+2010-01-01T00:00:01Z 1 5
+2010-01-01T00:00:01Z 2 6
+2010-01-01T00:00:02Z 0 7
+2010-01-01T00:00:02Z 1 8
+2010-01-01T00:00:02Z 2 9
+"
+}
+
+test_timeseries_D_allows_assignment_of_data_attribute () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+1 2 3
+4 5 6
+7 8 9
+DOC
+
+timeseries -s 2010-01-01 -n 3 -f "%{time} %{field_index} %{field}" -D field < "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1
+2010-01-01T00:00:00Z 1 2
+2010-01-01T00:00:00Z 2 3
+2010-01-01T00:00:01Z 0 4
+2010-01-01T00:00:01Z 1 5
+2010-01-01T00:00:01Z 2 6
+2010-01-01T00:00:02Z 0 7
+2010-01-01T00:00:02Z 1 8
+2010-01-01T00:00:02Z 2 9
+"
+}
+
+test_timeseries_D_terminates_when_stdin_closes () {
+num_lines=$(timeseries -D -Km <&- | head -n 100 | wc -l)
+[ $num_lines -lt 100 ]
+}
+
+#
 # -e
 #
 

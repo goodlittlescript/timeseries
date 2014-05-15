@@ -8,6 +8,7 @@ begin
     # -- leave undefined to allow defaults in command --
     # :blocking         => nil,
     # :input_mode       => nil,
+    :data_attr        => 'data',
     :input_time_format => nil,
     :n_steps          => 1,
     :period           => '1s',
@@ -48,6 +49,11 @@ begin
       when "none"        then options.merge!(:snap_start_time => nil, :snap_stop_time => nil)
       else raise "invalid rounding type: #{code}"
       end
+    end
+
+    opts.on("-D", "--data [ATTR]", "read data feed from stdin (assumes -k)") do |value|
+      options[:input_mode] = :data
+      options[:data_attr]  = value if value
     end
 
     opts.on("--debug", "debug mode") do
