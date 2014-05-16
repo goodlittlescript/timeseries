@@ -52,9 +52,15 @@ begin
       end
     end
 
-    opts.on("-C", "--cycle-data [ATTR]", "read stdin data feed, transpose, and cycle (assumes -k)") do |value|
+    opts.on("-C", "--cycle-data [ATTR]", "read stdin data feed, transpose, and cycle") do |value|
       options[:input_mode] = :cycle_data
       options[:data_attr]  = value if value
+    end
+
+    opts.on("-c", "--sync-cycle-data [ATTR]", "like -C but syncronizes n_steps to data feed") do |value|
+      options[:input_mode] = :sync_cycle_data
+      options[:data_attr]  = value if value
+      options[:stream_forever] = true
     end
 
     opts.on("-D", "--data [ATTR]", "read data feed from stdin (assumes -k)") do |value|

@@ -160,6 +160,44 @@ num_lines=$(timeseries -C -Km <&- | head -n 100 | wc -l)
 }
 
 #
+# -c
+#
+
+test_timeseries_c_is_C_but_cycles_data_only_once () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+1 3 5
+2 4 6
+DOC
+
+timeseries -s 2010-01-01 -n 4 -f "%{time} %{data_index} %{data}" -c < "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1
+2010-01-01T00:00:00Z 1 2
+2010-01-01T00:00:01Z 0 3
+2010-01-01T00:00:01Z 1 4
+2010-01-01T00:00:02Z 0 5
+2010-01-01T00:00:02Z 1 6
+"
+}
+
+test_timeseries_c_is_C_but_cycles_data_at_least_once () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+1 3 5
+2 4 6
+DOC
+
+timeseries -s 2010-01-01 -n 1 -f "%{time} %{data_index} %{data}" -c < "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1
+2010-01-01T00:00:00Z 1 2
+2010-01-01T00:00:01Z 0 3
+2010-01-01T00:00:01Z 1 4
+2010-01-01T00:00:02Z 0 5
+2010-01-01T00:00:02Z 1 6
+"
+}
+
+#
 # -D
 #
 
