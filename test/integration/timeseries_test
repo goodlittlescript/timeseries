@@ -286,6 +286,38 @@ timeseries -s 2010-01-01 -n 3 -f "%{time} %{data_index} %{data} %{letter} %{feed
 "
 }
 
+test_timeseries_d_allows_data_index_to_be_an_object () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+a b c
+c b a
+DOC
+
+cat > "$ts_test_dir/data" <<DOC
+{
+  "data_index": {
+    "0": {"feed": "x"},
+    "1": {"feed": "y"},
+    "2": {"feed": "z"}
+  },
+  "data": {
+    "a": {"letter": "A"},
+    "b": {"letter": "B"},
+    "c": {"letter": "C"}
+  }
+}
+DOC
+
+timeseries -s 2010-01-01 -n 3 -f "%{time} %{data_index} %{data} %{letter} %{feed}" -d  "$ts_test_dir/data" < "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 a A x
+2010-01-01T00:00:00Z 1 b B y
+2010-01-01T00:00:00Z 2 c C z
+2010-01-01T00:00:01Z 0 c C x
+2010-01-01T00:00:01Z 1 b B y
+2010-01-01T00:00:01Z 2 a A z
+"
+}
+
 #
 # -e
 #

@@ -17,7 +17,15 @@ class Timeseries
       def load_data_file(file)
         data = JSON.load(File.read(file))
         attributes = {}
-        (data["data_index"] || []).each_with_index do |raw_attrs, index|
+        data_index = (data["data_index"] || [])
+        if data_index.kind_of?(Hash)
+          array_data_index = []
+          data_index.each_pair do |key, value|
+            array_data_index[key.to_i] = value
+          end
+          data_index = array_data_index
+        end
+        data_index.each_with_index do |raw_attrs, index|
           attrs = {}
           # keys must be symbolized for sprintf
           raw_attrs.each_pair do |key, value|
