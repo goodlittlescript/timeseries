@@ -15,22 +15,23 @@ class Timeseries
       end
 
       def load_data_file(file)
+        data = JSON.load(File.read(file))
         attributes = {}
-        JSON.load(File.read(file)).each_pair do |key, raw_attrs|
+        (data["data_index"] || []).each_with_index do |raw_attrs, index|
+          attrs = {}
+          # keys must be symbolized for sprintf
+          raw_attrs.each_pair do |key, value|
+            attrs[key.to_sym] = value
+          end
+          attributes[index] = attrs
+        end
+        (data["data"] || {}).each_pair do |key, raw_attrs|
           attrs = {}
           # keys must be symbolized for sprintf
           raw_attrs.each_pair do |key, value|
             attrs[key.to_sym] = value
           end
           attributes[key] = attrs
-        end
-        attributes
-      end
-
-      def load_data_dir(dir)
-        attributes = {}
-        Dir.glob("#{dir}/*").each do |file|
-          attributes[File.basename(file)] = load_attrs(File.read(file))
         end
         attributes
       end
@@ -254,11 +255,11 @@ class Timeseries
     def data_attrs(field, index)
       attrs = {data_attr => field, data_index_attr => index}
       if data_file
-        @data_file_data ||= File.directory?(data_file) ? self.class.load_data_dir(data_file) : self.class.load_data_file(data_file)
-        attrs.merge(@data_file_data[field] ||= {})
-      else
-        attrs
+        @data_file_data ||= self.class.load_data_file(data_file)
+        attrs.merge!(@data_file_data[index] ||= {})
+        attrs.merge!(@data_file_data[field] ||= {})
       end
+      attrs
     end
 
     def each_attrs(last_time, time, index)
