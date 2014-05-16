@@ -27,12 +27,17 @@ class Timeseries
         end
         data_index.each_with_index do |raw_attrs, index|
           attrs = {}
-          # keys must be symbolized for sprintf
-          raw_attrs.each_pair do |key, value|
-            attrs[key.to_sym] = value
+          if raw_attrs.nil?
+            warn "warn: no attrs present for data_index #{index} (check #{file.inspect})"
+          else
+            # keys must be symbolized for sprintf
+            raw_attrs.each_pair do |key, value|
+              attrs[key.to_sym] = value
+            end
           end
           attributes[index] = attrs
         end
+
         (data["data"] || {}).each_pair do |key, raw_attrs|
           attrs = {}
           # keys must be symbolized for sprintf

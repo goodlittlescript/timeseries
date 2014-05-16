@@ -318,6 +318,26 @@ timeseries -s 2010-01-01 -n 3 -f "%{time} %{data_index} %{data} %{letter} %{feed
 "
 }
 
+test_timeseries_d_warns_missing_data_index () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+a b c
+c b a
+DOC
+
+cat > "$ts_test_dir/data" <<DOC
+{
+  "data_index": {
+    "0": {"feed": "x"},
+    "2": {"feed": "z"}
+  }
+}
+DOC
+
+timeseries -s 2010-01-01 -d  "$ts_test_dir/data" < "$ts_test_dir/input" 2>&1 |
+grep -q 'warn: no attrs present for data_index 1'
+}
+
 #
 # -e
 #
