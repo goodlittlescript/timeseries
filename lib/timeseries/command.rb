@@ -1,6 +1,7 @@
 require 'timeseries/iterator'
 require 'thread'
 require 'json'
+require 'yaml'
 
 class Timeseries
   class Command
@@ -149,9 +150,8 @@ class Timeseries
         end
 
         substitutes = Hash.new {|hash, key| hash[key] = key }
-        data_lines.each do |line|
-          key, value = line.split(/:\s+/, 2)
-          substitutes[key] = value
+        unless data_lines.empty?
+          substitutes.merge! YAML.load(data_lines.join("\n"))
         end
 
         attributes = []
@@ -159,7 +159,7 @@ class Timeseries
           unless substitutes.empty?
             fields.map! {|field| substitutes[field] }
           end
-          attributes << parse_feed_attributes(fields.join(' '), attrs)
+          attributes << parse_feed_attributes(fields, attrs)
         end
         @attributes = attributes.cycle
 
@@ -196,7 +196,7 @@ class Timeseries
         when input_mode == :gate || input_mode == :sync_gate 
           gate_time = parse_time(line)
         when input_mode == :data
-          @attributes = parse_feed_attributes(line)
+          @attributes = parse_feed_attributes(line.split(/\s+/))
         end
 
         iterator.each_until(gate_time) do |last_time, time, index|
@@ -297,8 +297,7 @@ class Timeseries
       end
     end
 
-    def parse_feed_attributes(line, attrs = [])
-      fields = line.split(/\s+/)
+    def parse_feed_attributes(fields, attrs = [])
       attributes = []
       fields.each_with_index do |field, index|
         next if field == data_skip_value

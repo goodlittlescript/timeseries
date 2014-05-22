@@ -205,19 +205,19 @@ cat > "$ts_test_dir/input" <<DOC
 1 a 5
 b 4 c
 ---
-a: 3
-b: 2
-c: 6
+a: 3 - three
+b: 2 - two
+c: 6 - six
 ---
 DOC
 
 timeseries -s 2010-01-01 -n 1 -f "%{time} %{data_index} %{data}" -c < "$ts_test_dir/input" | assert_output "\
 2010-01-01T00:00:00Z 0 1
-2010-01-01T00:00:00Z 1 2
-2010-01-01T00:00:01Z 0 3
+2010-01-01T00:00:00Z 1 2 - two
+2010-01-01T00:00:01Z 0 3 - three
 2010-01-01T00:00:01Z 1 4
 2010-01-01T00:00:02Z 0 5
-2010-01-01T00:00:02Z 1 6
+2010-01-01T00:00:02Z 1 6 - six
 "
 }
 
