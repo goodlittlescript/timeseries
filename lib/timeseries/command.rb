@@ -120,7 +120,8 @@ class Timeseries
         lines = []
         attrs = []
         while line = stdin.gets
-          fields = line.split(/\s+/)
+          fields = line.strip.sub(/#.*/, '').split(/\s+/)
+          next if fields.empty?
 
           base_attrs = \
           if data_fields
