@@ -79,6 +79,7 @@ class Timeseries
     attr_reader :data_index_attr
     attr_reader :data_file
     attr_reader :data_fields
+    attr_reader :data_skip_value
     attr_reader :input_mode
     attr_reader :input_time_format
     attr_reader :output_time_format
@@ -93,6 +94,7 @@ class Timeseries
       @data_index_attr = "#{@data_attr}_index".to_sym
       @data_file      = options.fetch(:data_file, nil)
       @data_fields    = options.fetch(:data_fields, nil)
+      @data_skip_value      = options.fetch(:data_skip_value, '-')
       @input_mode     = options.fetch(:input_mode, nil)
       @input_time_format = options.fetch(:input_time_format, nil)
       @output_time_format = options.fetch(:output_time_format, 0)
@@ -275,6 +277,7 @@ class Timeseries
       fields = line.split(/\s+/)
       attributes = []
       fields.each_with_index do |field, index|
+        next if field == data_skip_value
         base_attrs = attrs[index] || {}
         attributes << base_attrs.merge(data_attrs(field, index))
       end
