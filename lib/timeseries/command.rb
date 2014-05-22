@@ -119,10 +119,23 @@ class Timeseries
       when input_mode == :cycle_data || input_mode == :sync_cycle_data
         lines = []
         attrs = []
+        data_lines = []
+        parsing_data = false
         while line = stdin.gets
-          fields = line.strip.sub(/#.*/, '').split(/\s+/)
-          next if fields.empty?
+          line = line.strip.sub(/#.*/, '')
+          next if line.empty?
 
+          if line == '---'
+            parsing_data = !parsing_data
+            next
+          end
+
+          if parsing_data
+            data_lines << line
+            next
+          end
+
+          fields = line.split(/\s+/)
           base_attrs = \
           if data_fields
             field_values = fields.shift(data_fields.length)
@@ -134,12 +147,22 @@ class Timeseries
           attrs << base_attrs
           lines << fields
         end
-        attributes = []
-        lines.transpose.each do |fields|
-          attributes << parse_feed_attributes(fields.join(' '), attrs)
+
+        substitutes = Hash.new {|hash, key| hash[key] = key }
+        data_lines.each do |line|
+          key, value = line.split(/:\s+/, 2)
+          substitutes[key] = value
         end
 
+        attributes = []
+        lines.transpose.each do |fields|
+          unless substitutes.empty?
+            fields.map! {|field| substitutes[field] }
+          end
+          attributes << parse_feed_attributes(fields.join(' '), attrs)
+        end
         @attributes = attributes.cycle
+
         stdin = input_mode == :sync_cycle_data ? (Array.new(attributes.length, NODATA) + [EOF]).each : [NODATA].cycle
         stdin.instance_eval %{
           def gets
