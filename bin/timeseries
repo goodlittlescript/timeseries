@@ -10,6 +10,7 @@ begin
     # :input_mode       => nil,
     :data_attr        => 'data',
     :data_file        => nil,
+    :data_fields      => nil,
     :input_time_format => nil,
     :n_steps          => 1,
     :period           => '1s',
@@ -52,14 +53,14 @@ begin
       end
     end
 
-    opts.on("-C", "--cycle-data [ATTR]", "read stdin data feed, transpose, and cycle") do |value|
+    opts.on("-C", "--cycle-data [FIELD,...]", "read stdin data feed, transpose, and cycle") do |value|
       options[:input_mode] = :cycle_data
-      options[:data_attr]  = value if value
+      options[:data_fields] = value.split(',').map(&:to_sym) if value
     end
 
-    opts.on("-c", "--sync-cycle-data [ATTR]", "like -C but syncronizes n_steps to data feed") do |value|
+    opts.on("-c", "--sync-cycle-data [FIELD,...]", "like -C but syncronizes n_steps to data feed") do |value|
       options[:input_mode] = :sync_cycle_data
-      options[:data_attr]  = value if value
+      options[:data_fields]  = value.split(',').map(&:to_sym) if value
       options[:stream_forever] = true
     end
 

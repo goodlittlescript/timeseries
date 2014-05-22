@@ -78,6 +78,7 @@ class Timeseries
     attr_reader :data_attr
     attr_reader :data_index_attr
     attr_reader :data_file
+    attr_reader :data_fields
     attr_reader :input_mode
     attr_reader :input_time_format
     attr_reader :output_time_format
@@ -91,6 +92,7 @@ class Timeseries
       @data_attr      = options.fetch(:data_attr, 'data').to_sym
       @data_index_attr = "#{@data_attr}_index".to_sym
       @data_file      = options.fetch(:data_file, nil)
+      @data_fields    = options.fetch(:data_fields, nil)
       @input_mode     = options.fetch(:input_mode, nil)
       @input_time_format = options.fetch(:input_time_format, nil)
       @output_time_format = options.fetch(:output_time_format, 0)
@@ -114,13 +116,26 @@ class Timeseries
         Iterator.new(series_options.merge(:start_time => start_time))
       when input_mode == :cycle_data || input_mode == :sync_cycle_data
         lines = []
+        attrs = []
         while line = stdin.gets
-          lines << line.split(/\s+/)
+          fields = line.split(/\s+/)
+
+          base_attrs = \
+          if data_fields
+            field_values = fields.shift(data_fields.length)
+            base_attrs = Hash[data_fields.zip(field_values)]
+          else
+            {}
+          end
+
+          attrs << base_attrs
+          lines << fields
         end
         attributes = []
         lines.transpose.each do |fields|
-          attributes << parse_feed_attributes(fields.join(' '))
+          attributes << parse_feed_attributes(fields.join(' '), attrs)
         end
+
         @attributes = attributes.cycle
         stdin = input_mode == :sync_cycle_data ? (Array.new(attributes.length, NODATA) + [EOF]).each : [NODATA].cycle
         stdin.instance_eval %{
@@ -256,11 +271,12 @@ class Timeseries
       end
     end
 
-    def parse_feed_attributes(line)
+    def parse_feed_attributes(line, attrs = [])
       fields = line.split(/\s+/)
       attributes = []
       fields.each_with_index do |field, index|
-        attributes << data_attrs(field, index)
+        base_attrs = attrs[index] || {}
+        attributes << base_attrs.merge(data_attrs(field, index))
       end
       attributes
     end
