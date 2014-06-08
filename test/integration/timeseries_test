@@ -235,6 +235,44 @@ timeseries -s 2010-01-01 -n 4 -f "%{time} %{data_index} %{data}" -c < "$ts_test_
 "
 }
 
+test_timeseries_c_prints_empty_for_period () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+1 . 5
+. 4 .
+DOC
+
+timeseries -s 2010-01-01 -n 4 -f "%{time} %{data_index} %{data}#" -c < "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1#
+2010-01-01T00:00:00Z 1 #
+2010-01-01T00:00:01Z 0 #
+2010-01-01T00:00:01Z 1 4#
+2010-01-01T00:00:02Z 0 5#
+2010-01-01T00:00:02Z 1 #
+"
+}
+
+
+test_timeseries_c_can_override_behavior_of_dash_and_period () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+- . -
+. - .
+---
+-: dash
+.: period
+DOC
+
+timeseries -s 2010-01-01 -n 4 -f "%{time} %{data_index} %{data}" -c < "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 dash
+2010-01-01T00:00:00Z 1 period
+2010-01-01T00:00:01Z 0 period
+2010-01-01T00:00:01Z 1 dash
+2010-01-01T00:00:02Z 0 dash
+2010-01-01T00:00:02Z 1 period
+"
+}
+
 test_timeseries_c_ignores_extra_whitespace_comments_and_empty_lines () {
 mkdir -p "$ts_test_dir"
 cat > "$ts_test_dir/input" <<DOC
