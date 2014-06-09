@@ -15,37 +15,82 @@ class Timeseries
         attributes
       end
 
-      def load_data_file(file)
-        data = JSON.load(File.read(file))
-        attributes = {}
-        data_index = (data["data_index"] || [])
-        if data_index.kind_of?(Hash)
-          array_data_index = []
-          data_index.each_pair do |key, value|
-            array_data_index[key.to_i] = value
-          end
-          data_index = array_data_index
-        end
-        data_index.each_with_index do |raw_attrs, index|
-          attrs = {}
-          if raw_attrs.nil?
-            warn "warn: no attrs present for data_index #{index} (check #{file.inspect})"
-          else
-            # keys must be symbolized for sprintf
-            raw_attrs.each_pair do |key, value|
-              attrs[key.to_sym] = value
+      def load_cycle_file(file)
+        lines = []
+        settings_lines = []
+        parsing_settings = false
+
+        File.open(file) do |io|
+          while line = io.gets
+            if line.strip == '---'
+              parsing_settings = !parsing_settings
+              next
+            end
+
+            if parsing_settings
+              settings_lines << line
+            else
+              line = line.strip.sub(/#.*/, '')
+              lines << line unless line.empty?
             end
           end
-          attributes[index] = attrs
         end
 
-        (data["data"] || {}).each_pair do |key, raw_attrs|
-          attrs = {}
-          # keys must be symbolized for sprintf
-          raw_attrs.each_pair do |key, value|
-            attrs[key.to_sym] = value
+        settings = YAML.load(settings_lines.join("\n")) || {}
+        valid_keys = %w{options headers fields}
+        invalid_keys = valid_keys - valid_keys
+        unless invalid_keys.empty?
+          raise "invalid keys in settings: #{invalid_keys.inspect} (#{file.inspect})"
+        end
+
+        options = settings.fetch('options', {})
+        header_keys = settings.fetch('headers', []).map(&:to_sym)
+        substitutes = {"-" => nil, "." => {:field => ""}}
+        # because YAML might load non-string values
+        settings.fetch('fields', {}).each_pair do |key, value|
+          substitutes[key.to_s] = \
+          case value
+          when Hash
+            attrs = {:field => key.to_s}
+            value.each_pair do |k, v|
+              attrs[k.to_sym] = v.to_s
+            end
+            attrs
+          else {:field => value.to_s}
           end
-          attributes[key] = attrs
+        end
+
+        headers = []
+        lines.map! do |line|
+          fields = line.split(/\s+/)
+          header_values = fields.shift(header_keys.length)
+          headers << Hash[header_keys.zip(header_values)]
+          fields
+        end
+
+        attributes = []
+        lines.transpose.each do |fields|
+          attributes << parse_attributes(fields, headers, substitutes)
+        end
+
+        overrides = {}
+        options.each_pair do |key, value|
+          overrides[key.to_sym] = value
+        end
+        overrides[:attributes] = attributes
+        overrides
+      end
+
+      def parse_attributes(fields, headers = [], substitutes = {})
+        attributes = []
+        fields.each_with_index do |field, index|
+          attrs = substitutes.fetch(field) { {:field => field} }
+          next if attrs.nil?
+
+          base_attrs = headers[index] || {}
+          data_attrs = {:field_index => index}.merge(attrs)
+
+          attributes << base_attrs.merge(data_attrs)
         end
         attributes
       end
@@ -76,32 +121,22 @@ class Timeseries
 
     attr_reader :attributes
     attr_reader :blocking
-    attr_reader :data_attr
-    attr_reader :data_index_attr
-    attr_reader :data_file
-    attr_reader :data_fields
     attr_reader :input_mode
     attr_reader :input_time_format
     attr_reader :output_time_format
     attr_reader :line_format
     attr_reader :throttle
     attr_reader :series_options
-    attr_reader :substitutes
 
     def initialize(options = {})
       @attributes     = options.fetch(:attributes, nil)
       @blocking       = options.fetch(:blocking, options.has_key?(:input_mode))
-      @data_attr      = options.fetch(:data_attr, 'data').to_sym
-      @data_index_attr = "#{@data_attr}_index".to_sym
-      @data_file      = options.fetch(:data_file, nil)
-      @data_fields    = options.fetch(:data_fields, nil)
       @input_mode     = options.fetch(:input_mode, nil)
       @input_time_format = options.fetch(:input_time_format, nil)
       @output_time_format = options.fetch(:output_time_format, 0)
       @line_format    = options.fetch(:line_format, "%{time}")
       @throttle       = options.fetch(:throttle, nil)
       @series_options = options
-      @substitutes = {"-" => nil, "." => ""}
     end
 
     def process(stdin, stdout)
@@ -118,53 +153,13 @@ class Timeseries
         start_time = parse_time(line)
         Iterator.new(series_options.merge(:start_time => start_time))
       when input_mode == :cycle_data || input_mode == :sync_cycle_data
-        lines = []
-        attrs = []
-        data_lines = []
-        parsing_data = false
-        while line = stdin.gets
-          line = line.strip.sub(/#.*/, '')
-          next if line.empty?
-
-          if line == '---'
-            parsing_data = !parsing_data
-            next
-          end
-
-          if parsing_data
-            data_lines << line
-            next
-          end
-
-          fields = line.split(/\s+/)
-          base_attrs = \
-          if data_fields
-            field_values = fields.shift(data_fields.length)
-            base_attrs = Hash[data_fields.zip(field_values)]
-          else
-            {}
-          end
-
-          attrs << base_attrs
-          lines << fields
-        end
-
-        unless data_lines.empty?
-          substitutes.merge! YAML.load(data_lines.join("\n"))
-        end
-
-        attributes = []
-        lines.transpose.each do |fields|
-          attributes << parse_feed_attributes(fields, attrs)
-        end
-        @attributes = attributes.cycle
-
         stdin = input_mode == :sync_cycle_data ? (Array.new(attributes.length, NODATA) + [EOF]).each : [NODATA].cycle
         stdin.instance_eval %{
           def gets
             self.next
           end
         }
+        @attributes = attributes.cycle
         Iterator.new(series_options)
       else
         Iterator.new(series_options)
@@ -191,8 +186,6 @@ class Timeseries
           gate_time = iterator.time
         when input_mode == :gate || input_mode == :sync_gate 
           gate_time = parse_time(line)
-        when input_mode == :data
-          @attributes = parse_feed_attributes(line.split(/\s+/))
         end
 
         iterator.each_until(gate_time) do |last_time, time, index|
@@ -291,27 +284,6 @@ class Timeseries
       else
         time.strftime(output_time_format)
       end
-    end
-
-    def parse_feed_attributes(fields, attrs = [])
-      attributes = []
-      fields.each_with_index do |field, index|
-        field = substitutes.fetch(field, field)
-        next if field.nil?
-        base_attrs = attrs[index] || {}
-        attributes << base_attrs.merge(data_attrs(field, index))
-      end
-      attributes
-    end
-
-    def data_attrs(field, index)
-      attrs = {data_attr => field, data_index_attr => index}
-      if data_file
-        @data_file_data ||= self.class.load_data_file(data_file)
-        attrs.merge!(@data_file_data[index] ||= {})
-        attrs.merge!(@data_file_data[field] ||= {})
-      end
-      attrs
     end
 
     def each_attrs(last_time, time, index)

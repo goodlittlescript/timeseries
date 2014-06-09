@@ -8,9 +8,6 @@ begin
     # -- leave undefined to allow defaults in command --
     # :blocking         => nil,
     # :input_mode       => nil,
-    :data_attr        => 'data',
-    :data_file        => nil,
-    :data_fields      => nil,
     :input_time_format => nil,
     :n_steps          => 1,
     :period           => '1s',
@@ -53,25 +50,15 @@ begin
       end
     end
 
-    opts.on("-C", "--cycle-data [FIELD,...]", "read stdin data feed, transpose, and cycle") do |value|
+    opts.on("-C", "--cycle-data CONFIG_FILE", "cycle data in the file") do |file|
       options[:input_mode] = :cycle_data
-      options[:data_fields] = value.split(',').map(&:to_sym) if value
+      options.merge!(Timeseries::Command.load_cycle_file(file))
     end
 
-    opts.on("-c", "--sync-cycle-data [FIELD,...]", "like -C but syncronizes n_steps to data feed") do |value|
+    opts.on("-c", "--sync-cycle-data CONFIG_FILE", "like -C but syncronizes n_steps") do |file|
       options[:input_mode] = :sync_cycle_data
-      options[:data_fields]  = value.split(',').map(&:to_sym) if value
       options[:stream_forever] = true
-    end
-
-    opts.on("-D", "--data [ATTR]", "read data feed from stdin (assumes -k)") do |value|
-      options[:input_mode] = :data
-      options[:data_attr]  = value if value
-    end
-
-    opts.on("-d", "--data-file FILE_OR_DIR", "resolve data feed using JSON in file (assumes -kD)") do |value|
-      options[:input_mode] ||= :data
-      options[:data_file]  = value
+      options.merge!(Timeseries::Command.load_cycle_file(file))
     end
 
     opts.on("--debug", "debug mode") do

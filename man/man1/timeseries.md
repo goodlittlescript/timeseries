@@ -50,35 +50,16 @@ These options control how `timeseries` operates:
     nn            (next-next)
     none
 
-* `-c`, `--sync-cycle-data [ATTR]`
+* `-c`, `--sync-cycle-data CONFIG_FILE`
 
   Same as `-C` but synchronizes the series to exactly the number of steps in
   the data.
 
-* `-C`, `--cycle-data [ATTR]`
+* `-C`, `--cycle-data CONFIG_FILE`
 
-  Same as `-D` but reads stdin to EOF and transposes to get a data feeds.
-  Cycles the data for the duration of the series. This allows series to be
-  expressed with time on the x axis. When used with `-m` this will loop the
-  data indefinitely.
-
-* `-d`, `--data-source DIR_OR_FILE`
-
-  Dereferences each value in a data feed to the corresponding JSON file in the
-  data source. If a file is given then the file is loaded as JSON and the
-  values are treated as keys in the resulting object.
-
-  Assumes `-D`,
-
-* `-D`, `--data [ATTR]`
-
-  Treats each line of stdin as a space-separated list of data feeds and emits
-  one line for each step-feed combination. Sets the value of each feed into
-  the specified attribute (default 'data'). Each feed is also assigned an
-  index named like 'ATTR_index' which will be available for use in the
-  formats.
-
-  Assumes `-k`.
+  Reads and sets a data feed from the config file. Cycles the data for the
+  duration of the series. When used with `-m` this will loop the data
+  indefinitely.
 
 * `--debug`
 
