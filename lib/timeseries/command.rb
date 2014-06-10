@@ -124,7 +124,7 @@ class Timeseries
     attr_reader :input_mode
     attr_reader :input_time_format
     attr_reader :output_time_format
-    attr_reader :line_format
+    attr_reader :format
     attr_reader :throttle
     attr_reader :series_options
 
@@ -134,7 +134,7 @@ class Timeseries
       @input_mode     = options.fetch(:input_mode, nil)
       @input_time_format = options.fetch(:input_time_format, nil)
       @output_time_format = options.fetch(:output_time_format, 0)
-      @line_format    = options.fetch(:line_format, "%{time}")
+      @format    = options.fetch(:format, "%{time}")
       @throttle       = options.fetch(:throttle, nil)
       @series_options = options
     end
@@ -179,8 +179,8 @@ class Timeseries
           break if blocking || input_mode
         when input_mode == :attributes
           @attributes = self.class.load_attrs(line)
-        when input_mode == :line_format
-          @line_format = line
+        when input_mode == :format
+          @format = line
         when input_mode == :period
           iterator.set_period(line)
           gate_time = iterator.time
@@ -190,7 +190,7 @@ class Timeseries
 
         iterator.each_until(gate_time) do |last_time, time, index|
           each_attrs(last_time, time, index) do |attrs|
-            stdout.puts(line_format % attrs)
+            stdout.puts(format % attrs)
           end
 
           if throttle

@@ -70,11 +70,11 @@ begin
     end
 
     opts.on("-F", "--format-input", "read line formats from stdin (assumes -k)") do |str|
-      options[:input_mode] = :line_format
+      options[:input_mode] = :format
     end
 
     opts.on("-f", "--format SPRINTF", "sprintf line format") do |str|
-      options[:line_format] = str
+      options[:format] = str
     end
 
     opts.on("-G", "--gate-input [STRFTIME]", "gate output on input times (assumes -k)") do |value|
