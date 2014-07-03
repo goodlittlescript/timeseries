@@ -250,7 +250,6 @@ timeseries -s 2010-01-01 -n 4 -f "%{time} %{field_index} %{field}#" -c "$ts_test
 "
 }
 
-
 test_timeseries_c_can_override_behavior_of_dash_and_period () {
 mkdir -p "$ts_test_dir"
 cat > "$ts_test_dir/input" <<DOC
@@ -313,6 +312,111 @@ headers: [letter, number]
 DOC
 
 timeseries -s 2010-01-01 -n 4 -f "%{time} %{field_index} %{field} %{letter} %{number}" -c "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1 a one
+2010-01-01T00:00:00Z 1 2 b two
+2010-01-01T00:00:01Z 0 3 a one
+2010-01-01T00:00:01Z 1 4 b two
+2010-01-01T00:00:02Z 0 5 a one
+2010-01-01T00:00:02Z 1 6 b two
+"
+}
+
+#
+# -d
+#
+
+test_timeseries_d_parses_input_into_data_feed () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+1 2
+3 4
+5 6
+DOC
+
+timeseries -s 2010-01-01 -n 4 -f "%{time} %{field_index} %{field}" -d -- "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1
+2010-01-01T00:00:00Z 1 2
+2010-01-01T00:00:01Z 0 3
+2010-01-01T00:00:01Z 1 4
+2010-01-01T00:00:02Z 0 5
+2010-01-01T00:00:02Z 1 6
+"
+}
+
+test_timeseries_d_prints_nothing_for_dash () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+1 -
+- 4
+5 -
+DOC
+
+timeseries -s 2010-01-01 -n 4 -f "%{time} %{field_index} %{field}" -d -- "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1
+2010-01-01T00:00:01Z 1 4
+2010-01-01T00:00:02Z 0 5
+"
+}
+
+test_timeseries_d_prints_empty_for_period () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+1 .
+. 4
+5 .
+DOC
+
+timeseries -s 2010-01-01 -n 4 -f "%{time} %{field_index} %{field}#" -d -- "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1#
+2010-01-01T00:00:00Z 1 #
+2010-01-01T00:00:01Z 0 #
+2010-01-01T00:00:01Z 1 4#
+2010-01-01T00:00:02Z 0 5#
+2010-01-01T00:00:02Z 1 #
+"
+}
+
+test_timeseries_d_allows_inline_specification_of_field_mappings () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+1 b
+a 4
+5 c
+DOC
+cat > "$ts_test_dir/config" <<DOC
+---
+fields:
+  a: 3 - three
+  b: 2 - two
+  c: 6 - six
+---
+DOC
+
+timeseries -s 2010-01-01 -n 1 -f "%{time} %{field_index} %{field}" -d "$ts_test_dir/config" -- "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1
+2010-01-01T00:00:00Z 1 2 - two
+2010-01-01T00:00:01Z 0 3 - three
+2010-01-01T00:00:01Z 1 4
+2010-01-01T00:00:02Z 0 5
+2010-01-01T00:00:02Z 1 6 - six
+"
+}
+
+test_timeseries_d_allows_specification_of_header_fields () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+a b
+one two
+1 2
+3 4
+5 6
+DOC
+cat > "$ts_test_dir/config" <<DOC
+---
+headers: [letter, number]
+DOC
+
+timeseries -s 2010-01-01 -n 4 -f "%{time} %{field_index} %{field} %{letter} %{number}" -d "$ts_test_dir/config" -- "$ts_test_dir/input" | assert_output "\
 2010-01-01T00:00:00Z 0 1 a one
 2010-01-01T00:00:00Z 1 2 b two
 2010-01-01T00:00:01Z 0 3 a one

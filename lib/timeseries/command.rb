@@ -15,6 +15,54 @@ class Timeseries
         attributes
       end
 
+      def load_config_file(file)
+        settings = YAML.load_file(file) || {}
+        valid_keys = %w{options headers fields}
+        invalid_keys = valid_keys - valid_keys
+        unless invalid_keys.empty?
+          raise "invalid keys in settings: #{invalid_keys.inspect} (#{file.inspect})"
+        end
+
+        options = settings.fetch('options', {})
+        header_keys = settings.fetch('headers', []).map(&:to_sym)
+        substitutes = {"-" => nil, "." => {:field => ""}}
+        # because YAML might load non-string values
+        settings.fetch('fields', {}).each_pair do |key, value|
+          substitutes[key.to_s] = \
+          case value
+          when Hash
+            attrs = {:field => key.to_s}
+            value.each_pair do |k, v|
+              attrs[k.to_sym] = v.to_s
+            end
+            attrs
+          else {:field => value.to_s}
+          end
+        end
+
+        # headers = []
+        # lines.map! do |line|
+        #   fields = line.split(/\s+/)
+        #   header_values = fields.shift(header_keys.length)
+        #   headers << Hash[header_keys.zip(header_values)]
+        #   fields
+        # end
+
+        # attributes = []
+        # lines.transpose.each do |fields|
+        #   attributes << parse_attributes(fields, headers, substitutes)
+        # end
+
+        overrides = {}
+        options.each_pair do |key, value|
+          overrides[key.to_sym] = value
+        end
+        # overrides[:attributes] = attributes
+        overrides[:headers] = header_keys
+        overrides[:substitutes] = substitutes
+        overrides
+      end
+
       def load_cycle_file(file)
         lines = []
         settings_lines = []
@@ -45,7 +93,7 @@ class Timeseries
 
         options = settings.fetch('options', {})
         header_keys = settings.fetch('headers', []).map(&:to_sym)
-        substitutes = {"-" => nil, "." => {:field => ""}}
+        substitutes = DEFAULT_SUBSTITUTES
         # because YAML might load non-string values
         settings.fetch('fields', {}).each_pair do |key, value|
           substitutes[key.to_s] = \
@@ -118,6 +166,7 @@ class Timeseries
 
     EOF = Object.new
     NODATA = Object.new
+    DEFAULT_SUBSTITUTES = {"-" => nil, "." => {:field => ""}}
 
     attr_reader :attributes
     attr_reader :blocking
@@ -131,12 +180,14 @@ class Timeseries
     def initialize(options = {})
       @attributes     = options.fetch(:attributes, nil)
       @blocking       = options.fetch(:blocking, options.has_key?(:input_mode))
+      @headers        = options.fetch(:headers, [])
       @input_mode     = options.fetch(:input_mode, nil)
       @input_time_format = options.fetch(:input_time_format, nil)
       @output_time_format = options.fetch(:output_time_format, 0)
       @format    = options.fetch(:format, "%{time}")
       @throttle       = options.fetch(:throttle, nil)
       @series_options = options
+      @substitutes    = options.fetch(:substitutes, DEFAULT_SUBSTITUTES)
     end
 
     def process(stdin, stdout)
@@ -160,6 +211,20 @@ class Timeseries
           end
         }
         @attributes = attributes.cycle
+        Iterator.new(series_options)
+      when input_mode == :data
+
+        unless @headers.empty?
+          header_keys = @headers
+          @headers = []
+          header_keys.each do |header_key|
+            header_values = stdin.gets.split(" ")
+            header_values.each_with_index do |value, index|
+              @headers[index] ||= {}
+              @headers[index][header_key] = value
+            end
+          end
+        end
         Iterator.new(series_options)
       else
         Iterator.new(series_options)
@@ -186,6 +251,9 @@ class Timeseries
           gate_time = iterator.time
         when input_mode == :gate || input_mode == :sync_gate 
           gate_time = parse_time(line)
+        when input_mode == :data
+          fields = line.split(" ")
+          @attributes = self.class.parse_attributes(fields, @headers, @substitutes)
         end
 
         iterator.each_until(gate_time) do |last_time, time, index|
