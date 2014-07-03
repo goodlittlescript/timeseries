@@ -1,6 +1,10 @@
 #!/bin/bash
 . test/integration/helper
 
+# an arbitrary large number used as a cutoff in tests that
+# exercise some thread/timing component in timeseries
+large_number=10000
+
 #
 # usage
 #
@@ -52,8 +56,8 @@ printf '{"a": "%s"}\n' zero one two | timeseries -f "%{index} %{a}" -mA | assert
 }
 
 test_timeseries_A_terminates_when_stdin_closes () {
-num_lines=$(timeseries -A -Km <&- | head -n 100 | wc -l)
-[ $num_lines -lt 100 ]
+num_lines=$(timeseries -A -Km <&- | head -n $large_number | wc -l)
+[ $num_lines -lt $large_number ]
 }
 
 #
@@ -341,8 +345,8 @@ printf '%%{index} %s\n' zero one two | timeseries -m -F | assert_output "\
 }
 
 test_timeseries_F_terminates_when_stdin_closes () {
-num_lines=$(timeseries -F -Km <&- | head -n 100 | wc -l)
-[ $num_lines -lt 100 ]
+num_lines=$(timeseries -F -Km <&- | head -n $large_number | wc -l)
+[ $num_lines -lt $large_number ]
 }
 
 #
@@ -400,8 +404,8 @@ timeseries -p 2s -G -b none -s "2010-01-01T00:00:11Z" -n 2 | assert_output "\
 }
 
 test_timeseries_G_terminates_when_stdin_closes () {
-num_lines=$(printf "\n" "" "" | timeseries -G -Km | head -n 100 | wc -l)
-[ $num_lines -lt 100 ]
+num_lines=$(printf "\n" "" "" | timeseries -G -Km | head -n $large_number | wc -l)
+[ $num_lines -lt $large_number ]
 }
 
 #
@@ -484,8 +488,8 @@ timeseries -p -2s -n 10 -g | assert_output "\
 }
 
 test_timeseries_g_terminates_when_stdin_closes () {
-num_lines=$(printf "\n" "" "" | timeseries -g -Km | head -n 100 | wc -l)
-[ $num_lines -lt 100 ]
+num_lines=$(printf "\n" "" "" | timeseries -g -Km | head -n $large_number | wc -l)
+[ $num_lines -lt $large_number ]
 }
 
 #
@@ -552,8 +556,8 @@ diff <(timeseries -e '%Y-%m-%d' -KAm < /dev/zero | head -n 3) \
 }
 
 test_timeseries_K_alone_does_not_terminate_when_stdin_closes () {
-num_lines=$(printf "\n" "" "" | timeseries -Km | head -n 100 | wc -l)
-[ $num_lines -eq 100 ]
+num_lines=$(printf "\n" "" "" | timeseries -Km | head -n $large_number | wc -l)
+[ $num_lines -eq $large_number ]
 }
 
 #
@@ -663,8 +667,8 @@ timeseries -s '2010-01-01' -n 6 -W | assert_output "\
 }
 
 test_timeseries_W_terminates_when_stdin_closes () {
-num_lines=$(timeseries -W -Km <&- | head -n 100 | wc -l)
-[ $num_lines -lt 100 ]
+num_lines=$(timeseries -W -Km <&- | head -n $large_number | wc -l)
+[ $num_lines -lt $large_number ]
 }
 
 #
