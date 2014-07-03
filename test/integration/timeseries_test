@@ -322,6 +322,29 @@ timeseries -s 2010-01-01 -n 4 -f "%{time} %{field_index} %{field} %{letter} %{nu
 }
 
 #
+# -D
+#
+
+test_timeseries_D_assumes_field_name_header () {
+mkdir -p "$ts_test_dir"
+cat > "$ts_test_dir/input" <<DOC
+a b
+1 2
+3 4
+5 6
+DOC
+
+timeseries -s 2010-01-01 -n 4 -f "%{time} %{field_index} %{field} %{field_name}" -D -- "$ts_test_dir/input" | assert_output "\
+2010-01-01T00:00:00Z 0 1 a
+2010-01-01T00:00:00Z 1 2 b
+2010-01-01T00:00:01Z 0 3 a
+2010-01-01T00:00:01Z 1 4 b
+2010-01-01T00:00:02Z 0 5 a
+2010-01-01T00:00:02Z 1 6 b
+"
+}
+
+#
 # -d
 #
 

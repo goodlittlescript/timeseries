@@ -62,6 +62,12 @@ begin
       options.merge!(Timeseries::Command.load_cycle_file(file))
     end
 
+    opts.on("-D", "--common-data", "like -d assuming :field_name header") do
+      options[:input_mode] = :data
+      options[:stream_forever] = true
+      options[:headers] = [:field_name]
+    end
+
     opts.on("-d", "--data [CONFIG_FILE]", "stream data from stdin (implies -k)") do |file|
       options[:input_mode] = :data
       options[:stream_forever] = true
