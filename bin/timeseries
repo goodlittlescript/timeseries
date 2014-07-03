@@ -2,6 +2,7 @@
 begin
   require 'optparse'
   require 'timeseries/command'
+  require 'timeseries/version'
 
   options = {
     :attributes       => nil,
@@ -91,6 +92,7 @@ begin
     opts.on("-h", "--help", "print this help") do
       puts opts
       puts
+      puts Timeseries.version
       exit
     end
 
@@ -146,6 +148,11 @@ begin
 
     opts.on("-v", "--only-intervals", "only print full intervals") do
       options[:require_last_time] = true
+    end
+
+    opts.on("--version") do
+      puts Timeseries.version
+      exit
     end
 
     opts.on("-W", "--period-input", "reconfigures period from stdin (assumes -k)") do
