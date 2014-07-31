@@ -1,7 +1,7 @@
 require File.expand_path("../helper", __FILE__)
 require "timeseries"
 
-class TimeseriesTest < Test::Unit::TestCase
+class TimeseriesTest < Minitest::Test
 
   def setup
     @current_zone = Time.zone

@@ -1,7 +1,7 @@
 require File.expand_path("../../helper", __FILE__)
 require "timeseries/period"
 
-class PeriodTest < Test::Unit::TestCase
+class PeriodTest < Minitest::Test
   Period = Timeseries::Period
 
   #
