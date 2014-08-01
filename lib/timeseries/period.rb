@@ -28,8 +28,8 @@ class Timeseries
 
       # Parse a period string into a period.
       #
-      #   Timeseries.parse("1s2w").data        # => {:seconds => 1, :weeks => 2}
-      #   Timeseries.parse("1sec2weeks").data  # => {:seconds => 1, :weeks => 2}
+      #   Period.parse("1s2w").data        # => {:seconds => 1, :weeks => 2}
+      #   Period.parse("1sec2weeks").data  # => {:seconds => 1, :weeks => 2}
       #
       def parse(str)
         if str =~ /^\d+(\.\d+)?$/
