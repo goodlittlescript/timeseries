@@ -2,7 +2,7 @@
 require File.expand_path("../../helper", __FILE__)
 require "timeseries/command"
 
-class CommandTest < Test::Unit::TestCase
+class CommandTest < Minitest::Test
   Command = Timeseries::Command
 
   def setup

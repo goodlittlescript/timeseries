@@ -1,7 +1,7 @@
 require File.expand_path("../helper", __FILE__)
 require "timeseries"
 
-class ReadmeTest < Test::Unit::TestCase
+class ReadmeTest < Minitest::Test
 
   def setup
     @current_zone = Time.zone

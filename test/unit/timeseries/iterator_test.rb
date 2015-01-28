@@ -2,7 +2,7 @@
 require File.expand_path("../../helper", __FILE__)
 require "timeseries/iterator"
 
-class IteratorTest < Test::Unit::TestCase
+class IteratorTest < Minitest::Test
   Iterator = Timeseries::Iterator
 
   def setup

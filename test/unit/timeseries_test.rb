@@ -1,7 +1,7 @@
 require File.expand_path("../helper", __FILE__)
 require "timeseries"
 
-class TimeseriesTest < Test::Unit::TestCase
+class TimeseriesTest < Minitest::Test
 
   def setup
     @current_zone = Time.zone
@@ -275,6 +275,9 @@ class TimeseriesTest < Test::Unit::TestCase
       n_steps    = steps.length
       period = Timeseries::Period.parse(period_str).data
 
+      forward_steps = steps.map {|step| [*step].first }
+      reverse_steps = steps.map {|step| [*step].last }.reverse
+
       test_suffix  = "#{desc}_#{period_str}".gsub(/\W/, "_")
       class_eval %{
         def test_n_steps_to_for_#{test_suffix}
@@ -295,7 +298,7 @@ class TimeseriesTest < Test::Unit::TestCase
             :period     => #{period.inspect}
           )
           steps = series.map {|step| step.strftime("%Y-%m-%d %H:%M:%S %Z") }
-          assert_equal(#{steps.inspect}, steps)
+          assert_equal(#{forward_steps.inspect}, steps)
         end
 
         def test_reverse_series_for_#{test_suffix}
@@ -306,7 +309,7 @@ class TimeseriesTest < Test::Unit::TestCase
             :period     => #{period.inspect}
           )
           steps = series.map {|step| step.strftime("%Y-%m-%d %H:%M:%S %Z") }
-          assert_equal(#{steps.reverse.inspect}, steps)
+          assert_equal(#{reverse_steps.inspect}, steps)
         end
       }
     end
@@ -406,14 +409,28 @@ class TimeseriesTest < Test::Unit::TestCase
   }
   series_tests("dst_fall_fixed_period", DST_FALL_FIXED_PERIOD_SERIES) { Time.zone = "MST7MDT" }
 
+  # MST/MDT transitions are variable in the forward and back direction... as
+  # justification if you are Jan 31 and you want to go forward 1 month then
+  # you end up at Feb 28 or Feb 29, but if you go foward 2 months you end up
+  # at March 31. Point being that if you can advance one digit in the time
+  # without changing any of the others then you do it. It's only when you
+  # can't go there exactly that you start munging other digits. Insofar as
+  # MST/MDT is a "digit" it should not be munged unless needed. That means:
+  #
+  #   MDT -> MDT -> MST  # forward
+  #   MDT <- MST <- MST  # reverse
+  #
+  # Note that in the 1year case the transition happens to be symmetric because
+  # daylight savings happens on different days in each of those years.
+
   DST_FALL_VARIABLE_PERIOD_SERIES = {
-    "1day"    => ["2010-11-06 01:00:00 MDT", "2010-11-07 01:00:00 MDT", "2010-11-08 01:00:00 MST"],
-    "1week"   => ["2010-10-31 01:00:00 MDT", "2010-11-07 01:00:00 MDT", "2010-11-14 01:00:00 MST"],
-    "1mon"    => ["2010-10-07 01:00:00 MDT", "2010-11-07 01:00:00 MDT", "2010-12-07 01:00:00 MST"],
+    "1day"    => ["2010-11-06 01:00:00 MDT", ["2010-11-07 01:00:00 MDT", "2010-11-07 01:00:00 MST"], "2010-11-08 01:00:00 MST"],
+    "1week"   => ["2010-10-31 01:00:00 MDT", ["2010-11-07 01:00:00 MDT", "2010-11-07 01:00:00 MST"], "2010-11-14 01:00:00 MST"],
+    "1mon"    => ["2010-10-07 01:00:00 MDT", ["2010-11-07 01:00:00 MDT", "2010-11-07 01:00:00 MST"], "2010-12-07 01:00:00 MST"],
     "1year"   => ["2009-11-07 01:00:00 MST", "2010-11-07 01:00:00 MDT", "2011-11-07 01:00:00 MST"],
 
-    "2day1h"  => ["2010-11-05 00:00:00 MDT", "2010-11-07 01:00:00 MDT", "2010-11-09 02:00:00 MST"],
-    "-2day1h" => ["2010-11-09 00:00:00 MST", "2010-11-07 01:00:00 MDT", "2010-11-05 02:00:00 MDT"],
+    "2day1h"  => ["2010-11-05 00:00:00 MDT", ["2010-11-07 01:00:00 MDT", "2010-11-07 01:00:00 MST"], "2010-11-09 02:00:00 MST"],
+    "-2day1h" => ["2010-11-09 00:00:00 MST", ["2010-11-07 01:00:00 MST", "2010-11-07 01:00:00 MDT"], "2010-11-05 02:00:00 MDT"],
   }
   series_tests("dst_fall_variable_period", DST_FALL_VARIABLE_PERIOD_SERIES) { Time.zone = "MST7MDT" }
 
