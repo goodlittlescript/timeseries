@@ -19,7 +19,7 @@ class TimeseriesTest < Minitest::Test
   def test_create_creates_1s_unbounded_timeseries
     timeseries = Timeseries.create
     assert_equal({:seconds => 1}, timeseries.period.data)
-    assert_equal(nil, timeseries.n_steps)
+    assert_nil(timeseries.n_steps)
   end
 
   def test_create_uses_strings_or_symbols
@@ -42,7 +42,7 @@ class TimeseriesTest < Minitest::Test
       :start_time => Time.zone.parse("2010-01-01 00:23:00")
     )
     assert_equal({:seconds => 1}, options[:period].data)
-    assert_equal(nil, options[:n_steps])
+    assert_nil(options[:n_steps])
   end
 
   def test_normalize_with_start_time_and_period_assumes_nil_n_steps
@@ -51,7 +51,7 @@ class TimeseriesTest < Minitest::Test
       :period     => {:minutes => 15},
     )
     assert_equal({:minutes => 15}, options[:period].data)
-    assert_equal(nil, options[:n_steps])
+    assert_nil(options[:n_steps])
   end
 
   def test_normalize_with_start_time_and_n_steps_assumes_period_1s
@@ -151,7 +151,7 @@ class TimeseriesTest < Minitest::Test
       :n_steps    => 2,
       :period     => {:minutes => 15}
     )
-    assert_equal(nil, options[:stop_time])
+    assert_nil(options[:stop_time])
   end
 
   def test_normalize_coerces_start_and_stop_time
@@ -534,7 +534,7 @@ class TimeseriesTest < Minitest::Test
 
   def test_stop_time_returns_nil_when_n_steps_is_nil
     series = Timeseries.new :n_steps => nil
-    assert_equal nil, series.stop_time
+    assert_nil series.stop_time
   end
 
   #
